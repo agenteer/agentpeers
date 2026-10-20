@@ -50,19 +50,19 @@ There are no third-party Python runtime dependencies, new API keys or agentpeers
 Run in a terminal:
 
 ```sh
-codex plugin marketplace add https://github.com/agenteer/agentpeers.git
-codex plugin add agentpeers@agentpeers
-claude plugin install agentpeers --marketplace https://github.com/agenteer/agentpeers.git --scope user
+codex plugin marketplace add https://github.com/agenteer/marketplace.git
+codex plugin add agentpeers@agenteer-public
+claude plugin install agentpeers --marketplace https://github.com/agenteer/marketplace.git --scope user
 ```
 
 The combined Claude installation command requires 2.1.292+. Alternatively:
 
 ```sh
-claude plugin marketplace add https://github.com/agenteer/agentpeers.git
-claude plugin install agentpeers@agentpeers --scope user
+claude plugin marketplace add https://github.com/agenteer/marketplace.git
+claude plugin install agentpeers@agenteer-public --scope user
 ```
 
-Each client installs its own plugin copy. Both use the same external message store. For a local checkout, substitute its absolute path for the Git URL in marketplace commands and keep that checkout in a permanent location.
+The [Agenteer marketplace](https://github.com/agenteer/marketplace) lists the plugin; its code stays in this repository. Each client installs its own plugin copy. Both use the same external message store. For local development, add this repository's absolute path as a marketplace and install `agentpeers@agentpeers` instead. Keep that checkout in a permanent location.
 
 ### 3. Open the sessions
 
@@ -166,11 +166,11 @@ Existing Peerbridge users keep their messages: an existing `~/.local/state/peerb
 Use each client's plugin manager to update. A Git-backed installation updates from Git; a local-directory installation uses the maintained source directory. After upgrading, reload or open a fresh normal session and verify the running version and a real exchange. Uninstall with:
 
 ```sh
-codex plugin remove agentpeers@agentpeers
-claude plugin uninstall agentpeers@agentpeers --scope user
+codex plugin remove agentpeers@agenteer-public
+claude plugin uninstall agentpeers@agenteer-public --scope user
 ```
 
-Uninstall leaves messages intact. When migrating from Peerbridge, verify the new plugin first, then remove the old plugin or manual MCP registration through its owning client. Avoid leaving duplicate messaging servers enabled.
+Uninstall leaves messages intact. Earlier installations from this repository's standalone catalog (`agentpeers@agentpeers`) continue to work. When switching catalogs or migrating from Peerbridge, verify the new plugin first, then disable the previous installation through its owning client. Keep its files until active sessions have reloaded; uninstall it afterward. Avoid leaving duplicate messaging servers enabled.
 
 ## Troubleshooting
 
