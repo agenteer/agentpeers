@@ -73,11 +73,11 @@ codex app-server daemon start
 codex
 ```
 
-`start` reuses an existing server. For **Codex desktop**, open the app and use a chat with the plugin loaded. Setup checks whether that chat can receive. To also reach unloaded desktop chats, enable desktop wake once from an installed plugin checkout:
+`start` reuses an existing server. For **Codex desktop**, open the app and use a chat with the plugin loaded. Setup checks whether that chat can receive. To also reach unloaded desktop chats, tell either agent:
 
-```sh
-./bin/agentpeers desktop-wake enable
-```
+> Enable Agentpeers desktop wake. I understand it may select the destination chat in the app.
+
+The agent runs its installed plugin’s `bin/agentpeers desktop-wake enable` once. From a source checkout, you can run `./bin/agentpeers desktop-wake enable` yourself.
 
 Both clients share this setting through the message-store directory. On a send to an unloaded desktop chat, Agentpeers opens that exact chat using the app’s native link, waits for its receiver, then delivers the message as tool output. **The app may select the destination chat.** It does not move the conversation into a terminal or add a background service. Use `desktop-wake disable` to return to loaded receivers only; `desktop-wake status` checks the setting without opening anything. Enable this only with the human’s permission; ordinary message authorization is still required.
 
