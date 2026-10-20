@@ -9,6 +9,7 @@ Agentpeers connects sessions running under the same Mac login account. Programs 
 - Peer messages are labeled agent content. Scope labels do not grant permission, approve prompts or establish new human authority. Native destination controls remain authoritative.
 - A reachable idle peer may start a turn and consume usage. An uncertain submission is not automatically replayed.
 - Codex terminal delivery uses the documented local Unix WebSocket API. The socket alias and its resolved target must belong to this user in private directories. No network endpoint is opened.
+- Desktop wake is disabled by default. Explicit opt-in permits a new send to open a confirmed stored local chat using a fixed UUID-only app link. It may change the selected chat. It never puts message content in that link or takes the conversation into a terminal. Discovery remains read-only; only a compatible receiver can accept peer tool output. This does not bypass the destination’s permissions or turn agent reports into human instructions.
 - The Codex desktop interface is internal and version-sensitive. Unsupported delivery must fail without converting peer content into a human instruction.
 - The shared database is not encrypted by Agentpeers and has no automatic retention limit. Keep it private; do not sync it across machines or expose native sockets to a network.
 

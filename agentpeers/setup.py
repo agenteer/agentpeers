@@ -115,7 +115,7 @@ def doctor(actor=None):
             except (OSError, ValueError, plistlib.InvalidFileException):
                 pass
             break
-    add("desktop_version", "pass" if app_version == "26.1007.30912" else "warning",
+    add("desktop_version", "pass" if app_version in ("26.1007.30912", "26.1013.40934") else "warning",
         app_version or "App version not found at standard locations",
         "Desktop IPC is unpublished. Verify a live exchange after each app update.")
     terminal_ready = False
@@ -129,8 +129,17 @@ def doctor(actor=None):
     except Exception:
         add("codex_shared_server", "warning", "Codex terminal receiving is unavailable",
             "Run codex app-server daemon start, then open Codex normally. --no-daemon sessions cannot receive.")
+    from .desktop_wake import policy
+    try:
+        wake = policy()
+        add("desktop_wake", "pass", "Enabled: may open and select destination chats" if wake["enabled"] else
+            "Disabled: only already-loaded receivers can receive automatically")
+    except (OSError, ValueError) as exc:
+        add("desktop_wake", "fail", "Could not read desktop wake policy: " + str(exc))
+        wake = {"enabled": False}
     desktop_ready = False
     desktop_connected = False
+    wake_candidate = False
     try:
         with native.Desktop() as desktop:
             desktop_connected = True
@@ -141,15 +150,18 @@ def doctor(actor=None):
         if actor and actor.startswith("codex:"):
             add("desktop_owner", "pass", "This chat has a compatible receiving owner; no message sent")
     except Exception as exc:
+        wake_candidate = (desktop_connected and getattr(exc, "diagnostics", {}).get("code") == "desktop_owner_missing"
+                          and wake["enabled"])
         add("desktop_owner" if desktop_connected else "desktop_socket", "warning",
             "Agentpeers desktop receiving unavailable: " + str(exc),
             "For same-runtime coordination use native messaging first. For cross-runtime receiving, verify the "
             "intended terminal's shared-server association or a compatible desktop owner; preserve active work.")
     if actor and actor.startswith("codex:"):
         terminal_ready = actor.split(":", 1)[1] in loaded
-    ready = terminal_ready or desktop_ready
-    add("codex_receive_route", "pass" if ready else "fail",
-        ("Agentpeers receive candidate found; live exchange still required" if ready else
+    ready = terminal_ready or desktop_ready or wake_candidate
+    add("codex_receive_route", "warning" if wake_candidate and not (terminal_ready or desktop_ready) else "pass" if ready else "fail",
+        ("Desktop wake candidate; no chat opened or message sent by this check" if wake_candidate else
+         "Agentpeers receive candidate found; live exchange still required" if ready else
          "No Agentpeers receive route for " + (actor or "a loaded Codex terminal")),
         "A daemon handshake or stored listing is insufficient. Check terminal association without restarting active work. "
         "Native Codex chat messaging may still work; use it first for Codex-to-Codex coordination.")

@@ -30,6 +30,7 @@ Use each runtime's native messaging for its own peers; agentpeers extends that w
 | --- | --- | --- |
 | Codex CLI **0.163.0**, in a terminal | Claude Code **2.1.303**, in a terminal | Questions and replies in both directions; checked October 19, 2026. |
 | Codex desktop app **26.1007.30912** | Claude Code **2.1.296**, in a terminal | Questions and replies in both directions. Receiving requires a loaded Codex chat. |
+| Codex desktop app **26.1013.40934** | Claude Code **2.1.304**, in a terminal | An unloaded chat was opened by desktop wake, consumed the peer message and returned its exact nonce; checked October 20, 2026. |
 | Codex terminal or desktop app | Claude Code in the Claude desktop app | Not yet verified with agentpeers. |
 
 Run the setup check after installation or client updates to confirm that messages and replies reach both sessions. The Claude desktop entry refers to Claude Code in the app's Code tab; ordinary Claude Chat and Cowork conversations are not supported connections.
@@ -73,11 +74,17 @@ codex app-server daemon start
 codex
 ```
 
-`start` reuses an existing server. For **Codex desktop**, open the app and use a chat with the plugin loaded. Setup checks whether that chat can receive; opening the app alone is insufficient.
+`start` reuses an existing server. For **Codex desktop**, open the app and use a chat with the plugin loaded. Setup checks whether that chat can receive. To also reach unloaded desktop chats, tell either agent:
+
+> Enable Agentpeers desktop wake. I understand it may select the destination chat in the app.
+
+The agent runs its installed plugin’s `bin/agentpeers desktop-wake enable` once. From a source checkout, you can run `./bin/agentpeers desktop-wake enable` yourself.
+
+Both clients share this setting through the message-store directory. On a send to an unloaded desktop chat, Agentpeers opens that exact chat using the app’s native link, waits for its receiver, then delivers the message as tool output. **The app may select the destination chat.** It does not move the conversation into a terminal or add a background service. Use `desktop-wake disable` to return to loaded receivers only; `desktop-wake status` checks the setting without opening anything. Enable this only with the human’s permission; ordinary message authorization is still required.
 
 Open Claude Code normally in another terminal. Reload plugins or start fresh sessions after installation; Claude supports `/reload-plugins --force`.
 
-A Codex terminal opened before the shared server may use an embedded server. Finish its active work, then exit and resume normally against the shared server. Do not use `--no-daemon` for a session that needs to receive. agentpeers never restarts the server or resumes a chat behind your back.
+A Codex terminal opened before the shared server may use an embedded server. Finish its active work, then exit and resume normally against the shared server. Do not use `--no-daemon` for a session that needs to receive. agentpeers never restarts the server or takes a desktop-owned chat into a terminal. Desktop wake uses the app itself, only after explicit opt-in.
 
 ### 4. Verify a real exchange
 
@@ -131,8 +138,8 @@ sequenceDiagram
 | `unconfirmed` | Submission may have happened. Check receipts before deciding on another send; agentpeers never automatically replays it. |
 
 - **Busy agents:** messages follow native handling at a model/tool boundary. Running tools are not interrupted. A compatible idle receiver can start a turn.
-- **Closed or unloaded sessions:** saved chats are not necessarily receiving. There is no offline delivery queue, automatic resume or background retry.
-- **Codex desktop:** the app being open is insufficient; the destination chat needs a compatible loaded receiver. Native Codex messaging can reach chats this adapter cannot.
+- **Closed or unloaded sessions:** there is no offline delivery queue or background retry. An exited Claude session cannot receive. With desktop wake enabled, Agentpeers can open an unloaded local Codex desktop chat during a new send; it does not replay previously saved messages.
+- **Codex desktop:** desktop wake is off by default. When enabled, opening the destination must establish a compatible receiver before any message is submitted. A timeout, unsupported receiver or failed app link leaves the message unavailable; an uncertain submission is never automatically retried. Completely quitting and relaunching the app is not covered by this wake test.
 - **Reply routes:** a sender receives a warning if its return route is missing or unverified. A warning is not delivery proof; an active caller may need to collect the saved reply from its mailbox.
 - **Other machines:** native cross-machine transport is not implemented. Do not sync the SQLite store or expose native sockets to a network.
 
@@ -177,7 +184,7 @@ Uninstall leaves messages intact. Earlier installations from this repository's s
 - **Tools or arguments remain stale after reload:** use a fresh normal session or exit/resume after finishing active work. Repeated reconnects may leave conversation-cached schemas unchanged; do not add a duplicate manual MCP server.
 - **The shared server runs but the destination is absent:** the terminal may be embedded rather than attached. Setup checks the actual caller when its identity is available. On Codex 0.162.1, one tested inline reasoning override selected an embedded server; removing that optional override restored attachment. Check your current version instead of assuming all overrides behave alike.
 - **A send failed but the answer was saved:** inspect the original request's correlated replies and collect the existing reply. `delivery` can later become `read` while `transport_status` retains the original failure. Do not resend an already saved answer.
-- **The desktop connection is reachable but delivery fails:** inspect the specific chat's receiving owner. Connection availability does not establish chat availability or app closure.
+- **The desktop connection is reachable but delivery fails:** inspect the specific chat's receiving owner. Connection availability does not establish chat availability or app closure. If desktop wake is enabled, check `detail.desktop_wake` on a submitted message; only a real reply and reads prove the exchange worked.
 
 ## Development and support
 
