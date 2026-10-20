@@ -3,6 +3,7 @@ import hashlib
 from datetime import datetime
 import json
 import os
+import platform
 from pathlib import Path
 import queue
 import socket
@@ -16,6 +17,7 @@ import uuid
 from . import __version__
 from .config import setting
 from .unixrpc import SharedServer
+from .desktop_wake import enabled as desktop_wake_enabled
 
 MAX_BYTES = 256_000
 
@@ -252,9 +254,10 @@ class Desktop:
     """Experimental desktop IPC, observed on app 26.1007.30912.
 
     This is NOT a published OpenAI API. Only discover, steer and start are used.
-    Never resume/take ownership, interrupt, modify settings, or answer approvals.
+    Explicit desktop-wake opt-in can open a chat using its native app link.
+    Never take terminal ownership, interrupt, modify settings, or answer approvals.
     """
-    def __init__(self, timeout=10):
+    def __init__(self, timeout=15):
         self.timeout = timeout
 
     def __enter__(self):
@@ -263,7 +266,7 @@ class Desktop:
         try:
             owned_path(path, stat.S_ISSOCK)
             self.sock = socket.socket(socket.AF_UNIX)
-            self.sock.settimeout(min(8, self.timeout))
+            self.sock.settimeout(self.timeout)
             self.sock.connect(str(path))
         except OSError as exc:
             if hasattr(self, "sock"):
@@ -300,6 +303,7 @@ class Desktop:
         self.sock.sendall(struct.pack("<I", len(body)) + body)
         deadline = time.monotonic() + self.timeout
         while time.monotonic() < deadline:
+            self.sock.settimeout(max(.01, deadline - time.monotonic()))
             length = struct.unpack("<I", self.exact(4))[0]
             if length > 4_000_000:
                 raise ValueError("desktop frame exceeds limit")
@@ -334,9 +338,52 @@ class Desktop:
                               code="desktop_owner_incompatible", desktop_connected=True, desktop_owner_found=True)
         return result["handledByClientId"]
 
+    def wake(self, ident):
+        """Open only a confirmed stored local chat, with no prompt in the URL.
+
+        The app owns any resume and its normal admission/permissions. A launch
+        return code is never delivery evidence; require a compatible receiver.
+        """
+        if platform.system() != "Darwin":
+            raise Unavailable("Desktop wake currently requires macOS", code="desktop_wake_unsupported")
+        ident = str(uuid.UUID(ident))
+        try:
+            with AppServer() as client:
+                thread = client.call("thread/read", {"threadId": ident, "includeTurns": False})["thread"]
+            if thread["id"] != ident:
+                raise ValueError("stored chat ID mismatch")
+            if "archived_sessions" in Path(thread.get("path") or "").parts:
+                raise ValueError("archived chats are not opened automatically")
+            result = subprocess.run(["/usr/bin/open", "-g", "codex://threads/" + ident],
+                                    capture_output=True, timeout=5)
+            if result.returncode:
+                raise ValueError("native app link could not be opened")
+        except (OSError, ValueError, KeyError, Unavailable, subprocess.SubprocessError) as exc:
+            raise Unavailable("Could not open the destination chat; no message submitted: " + str(exc),
+                              code="desktop_wake_failed") from exc
+        deadline = time.monotonic() + 30
+        while True:
+            try:
+                return self.owner(ident)
+            except Unavailable as exc:
+                if exc.diagnostics.get("code") != "desktop_owner_missing":
+                    raise
+                if time.monotonic() >= deadline:
+                    raise Unavailable("Opened the chat but no compatible receiver became available; "
+                                      "no message submitted. No automatic retry.", code="desktop_wake_failed",
+                                      desktop_connected=True, desktop_owner_found=False) from exc
+                time.sleep(.25)
+
     def send(self, destination, envelope):
         ident = destination["id"].split(":", 1)[1]
-        owner = self.owner(ident)
+        woke = False
+        try:
+            owner = self.owner(ident)
+        except Unavailable as exc:
+            if exc.diagnostics.get("code") != "desktop_owner_missing" or not desktop_wake_enabled():
+                raise
+            owner = self.wake(ident)
+            woke = True
         # The peer message is a tool result, never a human/user instruction.
         output = {"name": "agentpeers", "output": json.dumps(envelope, ensure_ascii=False)}
         restore = {"id": envelope["id"], "text": "Peer message", "createdAt": int(time.time()*1000),
@@ -349,7 +396,7 @@ class Desktop:
                 "restoreMessage": restore, "clientUserMessageId": envelope["id"], "attachments": []
             }, 1, owner)
             if result.get("resultType") == "success":
-                return {"transport": "desktop-steer", "ack": result.get("result")}
+                return {"transport": "desktop-steer", "ack": result.get("result"), "desktop_wake": woke}
             error = str(result.get("error", ""))
             # Start only after an explicit rejection saying no turn is active.
             if not ("not being streamed" in error or "not currently running" in error
@@ -364,7 +411,7 @@ class Desktop:
             }, 2, owner)
             if result.get("resultType") != "success":
                 raise Unconfirmed("desktop start rejected: " + str(result.get("error")))
-            return {"transport": "desktop-start", "ack": result.get("result")}
+            return {"transport": "desktop-start", "ack": result.get("result"), "desktop_wake": woke}
         except (OSError, TimeoutError, ValueError) as exc:
             raise Unconfirmed("desktop submission outcome unknown: " + str(exc)) from exc
 
@@ -403,6 +450,10 @@ def receive_route(actor):
             result.update(status="available", transport="desktop")
         except Unavailable as exc:
             result["diagnostics"] = {**exc.diagnostics, "shared_target_loaded": shared_target_loaded}
+            if exc.diagnostics.get("code") == "desktop_owner_missing" and desktop_wake_enabled():
+                result.update(status="wake_required", desktop_wake=True,
+                              note="Desktop wake is enabled; an actual send can open this chat. Not delivery proof.")
+                return result
             if exc.diagnostics.get("code") != "desktop_owner_missing" or shared_target_loaded is None:
                 result["status"] = "unknown"
         except Exception:

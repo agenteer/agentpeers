@@ -143,6 +143,8 @@ class Bridge:
                 "desktop_handshake_failed": "The desktop connection could not be verified. Whether the app is running is unknown.",
                 "desktop_owner_discovery_failed": "The desktop connection works, but this chat's receiving state could not be verified.",
                 "desktop_owner_incompatible": "This chat has a receiver, but it cannot accept Agentpeers messages safely.",
+                "desktop_wake_failed": "Opening the destination did not establish a compatible receiver.",
+                "desktop_wake_unsupported": "Desktop wake is unavailable on this operating system.",
                 "name_resolution_unverified": "One or more matching receivers could not be checked. Their session state is unknown.",
                 "name_unreachable": "No reachable session matched the requested name. This does not establish whether the app is running."
             }.get(code, "The destination's receiving route is unavailable.")
@@ -151,7 +153,11 @@ class Bridge:
                 "it will not automatically arrive when the chat is reopened." if result["recipient"] else
                 " No recipient mailbox was assigned; nothing will automatically arrive later.")
         result["warnings"] = []
-        if result["return_route"] and result["return_route"]["status"] != "available":
+        if result["return_route"] and result["return_route"]["status"] == "wake_required":
+            result["warnings"].append("The sender's desktop chat needs opening to receive replies. "
+                "Desktop wake is enabled; an updated Agentpeers sender can open it automatically. "
+                "This may change the app's selected chat. A reply still needs a live read receipt.")
+        elif result["return_route"] and result["return_route"]["status"] != "available":
             result["warnings"].append("No automatic reply route was verified for this sender. "
                 "Replies can be saved in its mailbox, but the sender must collect them with agentpeers inbox. "
                 "Mailbox storage does not wake the sender or prove a read.")

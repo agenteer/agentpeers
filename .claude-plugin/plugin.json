@@ -1,6 +1,6 @@
 {
   "name": "agentpeers",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Let your Codex and Claude Code sessions talk to each other.",
   "license": "MIT",
   "mcpServers": {
@@ -11,7 +11,7 @@
         "mcp"
       ],
       "env": {
-        "AGENTPEERS_PLUGIN_VERSION": "0.6.0"
+        "AGENTPEERS_PLUGIN_VERSION": "0.6.1"
       }
     }
   }

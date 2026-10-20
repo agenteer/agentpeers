@@ -15,6 +15,8 @@ def main():
     listing = sub.add_parser("list")
     listing.add_argument("--runtime", choices=["codex", "claude", "all"], default="all")
     sub.add_parser("whoami")
+    waking = sub.add_parser("desktop-wake", help="opt in to opening unloaded destination chats in Codex desktop")
+    waking.add_argument("mode", choices=["enable", "disable", "status"], default="status", nargs="?")
     checking = sub.add_parser("doctor", help="check dependencies and registrations without sending")
     checking.add_argument("--probe", help="verify an earlier setup challenge after reading its reply")
     sending = sub.add_parser("send")
@@ -45,7 +47,10 @@ def main():
     sub.add_parser("mcp")
     args = parser.parse_args()
     try:
-        if args.command == "list":
+        if args.command == "desktop-wake":
+            from .desktop_wake import policy
+            output = policy(None if args.mode == "status" else args.mode == "enable")
+        elif args.command == "list":
             result, errors = [], []
             for runtime, discover in [("claude", native.claude_sessions), ("codex", native.codex_sessions)]:
                 if args.runtime in (runtime, "all"):

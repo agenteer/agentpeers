@@ -51,6 +51,12 @@ def resolve_name(name, rows=None):
                     client.owner(row["id"].split(":", 1)[1])
                 reachable.append(row)
             except (native.Unavailable, OSError, ValueError, KeyError) as exc:
+                if (getattr(exc, "diagnostics", {}).get("code") == "desktop_owner_missing"
+                        and native.desktop_wake_enabled()):
+                    # Discovery stays read-only. Send will open the exact resolved
+                    # chat. An unloaded duplicate is now also an eligible holder.
+                    reachable.append(row)
+                    continue
                 failures.append({"session_id": row["id"], "reason": str(exc),
                                  **getattr(exc, "diagnostics", {})})
                 continue

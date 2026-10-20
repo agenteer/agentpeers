@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1
+
+- Add explicit desktop wake opt-in: open an unloaded Codex destination using its native app link, verify its receiver, then deliver peer tool output. The app may select that chat.
+- Keep discovery read-only and preserve message provenance, exact destination IDs and no automatic replay after uncertainty. No new background service or terminal takeover.
+- Allow unique unloaded names when desktop wake is enabled; refuse eligible duplicate names.
+- Let normal desktop discovery finish before treating its missing-owner response as a timeout.
+
 ## 0.6.0 — first public release candidate
 
 - Introduce agentpeers: local Codex terminal ↔ Claude Code terminal discovery, scoped messages, correlated replies and explicit read receipts.
