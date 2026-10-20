@@ -30,6 +30,7 @@ Use each runtime's native messaging for its own peers; agentpeers extends that w
 | --- | --- | --- |
 | Codex CLI **0.163.0**, in a terminal | Claude Code **2.1.303**, in a terminal | Questions and replies in both directions; checked October 19, 2026. |
 | Codex desktop app **26.1007.30912** | Claude Code **2.1.296**, in a terminal | Questions and replies in both directions. Receiving requires a loaded Codex chat. |
+| Codex desktop app **26.1013.40934** | Claude Code **2.1.304**, in a terminal | An unloaded chat was opened by desktop wake, consumed the peer message and returned its exact nonce; checked October 20, 2026. |
 | Codex terminal or desktop app | Claude Code in the Claude desktop app | Not yet verified with agentpeers. |
 
 Run the setup check after installation or client updates to confirm that messages and replies reach both sessions. The Claude desktop entry refers to Claude Code in the app's Code tab; ordinary Claude Chat and Cowork conversations are not supported connections.

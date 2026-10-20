@@ -115,7 +115,7 @@ def doctor(actor=None):
             except (OSError, ValueError, plistlib.InvalidFileException):
                 pass
             break
-    add("desktop_version", "pass" if app_version == "26.1007.30912" else "warning",
+    add("desktop_version", "pass" if app_version in ("26.1007.30912", "26.1013.40934") else "warning",
         app_version or "App version not found at standard locations",
         "Desktop IPC is unpublished. Verify a live exchange after each app update.")
     terminal_ready = False
