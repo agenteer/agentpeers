@@ -1,0 +1,18 @@
+{
+  "name": "agentpeers",
+  "version": "0.6.0",
+  "description": "Bridge local Codex and Claude Code sessions with explicit read receipts; prefer native messaging for same-runtime peers.",
+  "license": "MIT",
+  "mcpServers": {
+    "agentpeers": {
+      "type": "stdio",
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/agentpeers",
+      "args": [
+        "mcp"
+      ],
+      "env": {
+        "AGENTPEERS_PLUGIN_VERSION": "0.6.0"
+      }
+    }
+  }
+}

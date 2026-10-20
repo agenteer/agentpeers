@@ -1,0 +1,16 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "agentpeers": {
+      "type": "stdio",
+      "command": "./bin/agentpeers",
+      "args": [
+        "mcp"
+      ],
+      "cwd": "./",
+      "env": {
+        "AGENTPEERS_PLUGIN_VERSION": "0.6.0"
+      }
+    }
+  }
+}

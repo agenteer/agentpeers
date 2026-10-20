@@ -1,0 +1,9 @@
+{
+  "name": "agentpeers",
+  "owner": {"name": "Agenteer LLC"},
+  "plugins": [{
+    "name": "agentpeers",
+    "source": "./",
+    "description": "Local Codex and Claude Code peer messaging"
+  }]
+}

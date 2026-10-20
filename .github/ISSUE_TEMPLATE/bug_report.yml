@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a reproducible discovery, setup, delivery or receipt problem.
+title: '[Bug] '
+body:
+  - type: markdown
+    attributes:
+      value: 'For vulnerabilities, follow SECURITY.md. Do not include tokens, transcripts, private paths or message databases.'
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: Agentpeers commit/version, macOS, Codex CLI, optional desktop, Claude Code; whether the shared server is running.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps and expected behavior
+      description: Include whether the destination was busy, idle or exited. Redact session names and project paths.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and redacted status
+      description: Distinguish submitted, read, unavailable and unconfirmed. State whether a receiving agent actually acknowledged.
+    validations:
+      required: true

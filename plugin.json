@@ -1,0 +1,18 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "agentpeers",
+  "version": "0.6.0",
+  "description": "Bridge local Codex and Claude Code sessions with explicit read receipts; prefer native messaging for same-runtime peers.",
+  "license": "MIT",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/setup/SKILL.md",
+      "interface": {
+        "displayName": "Agentpeers",
+        "shortDescription": "Messages between Codex and Claude Code",
+        "longDescription": "Connect Codex terminal or loaded desktop chats with Claude Code terminal sessions. Exchange messages and explicit read receipts on one Mac; Python 3.10+ required.",
+        "category": "Productivity"
+      }
+    }
+  }
+}
