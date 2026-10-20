@@ -2,23 +2,13 @@
 
 **Let your Codex and Claude Code sessions talk to each other.**
 
-Find an existing session, ask a question, receive a reply and check whether each message was read. Connect **Codex in a terminal or the Codex desktop app** with **Claude Code in a terminal**, on the same Mac.
+Use Codex and Claude Code together without copying messages between them. Ask either agent to find the other session, ask questions, share findings and coordinate work.
 
-Peer messages are information, not permission from you. Use each runtime's native messaging for its own peers; agentpeers connects Codex and Claude Code across that boundary.
+Connect **Codex in a terminal or the Codex desktop app** with **Claude Code in a terminal**, on the same Mac.
 
 **macOS · Python 3.10+ · Both clients use the same Mac login account**
 
 [Tested connections](#tested-connections) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Delivery and limits](#delivery-and-limits) · [Security](SECURITY.md)
-
-## Tested connections
-
-| Codex side | Claude side | What was verified |
-| --- | --- | --- |
-| Codex CLI **0.163.0**, in a terminal | Claude Code **2.1.303**, in a terminal | Two-way messages and read receipts; checked October 19, 2026. |
-| Codex desktop app **26.1007.30912** | Claude Code **2.1.296**, in a terminal | Two-way messages and read receipts. Receiving requires a loaded Codex chat. |
-| Codex terminal or desktop app | Claude Code in the Claude desktop app | Not yet verified with agentpeers. |
-
-Run the setup check after installation or client updates to confirm that messages and replies reach both sessions. The Claude desktop entry refers to Claude Code in the app's Code tab; ordinary Claude Chat and Cowork conversations are not supported connections.
 
 ## What it feels like
 
@@ -30,7 +20,19 @@ Tell Claude:
 
 > Find the Codex session reviewing the frontend and send it the API change.
 
-The agent lists sessions, identifies the destination and sends within the work you authorized. The other agent can read and reply. You do not create a connection for each pair. Give sessions distinct names; ambiguous destinations require clarification.
+The agents find each other and exchange messages through tools in their existing sessions. You keep working in your usual clients, without relaying messages yourself or creating a connection for each pair. Give sessions distinct names so the agent can identify the right one.
+
+Use each runtime's native messaging for its own peers; agentpeers extends that workflow across Codex and Claude Code. Peer messages do not grant additional permission beyond the work you authorized.
+
+## Tested connections
+
+| Codex side | Claude side | What was verified |
+| --- | --- | --- |
+| Codex CLI **0.163.0**, in a terminal | Claude Code **2.1.303**, in a terminal | Questions and replies in both directions; checked October 19, 2026. |
+| Codex desktop app **26.1007.30912** | Claude Code **2.1.296**, in a terminal | Questions and replies in both directions. Receiving requires a loaded Codex chat. |
+| Codex terminal or desktop app | Claude Code in the Claude desktop app | Not yet verified with agentpeers. |
+
+Run the setup check after installation or client updates to confirm that messages and replies reach both sessions. The Claude desktop entry refers to Claude Code in the app's Code tab; ordinary Claude Chat and Cowork conversations are not supported connections.
 
 ## Quick start
 

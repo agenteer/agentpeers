@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "agentpeers"
 version = "0.6.0"
-description = "A small local Codex and Claude Code messaging bridge"
+description = "Let your Codex and Claude Code sessions talk to each other."
 requires-python = ">=3.10"
 dependencies = []
 readme = "README.md"
