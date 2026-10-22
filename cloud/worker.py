@@ -5,6 +5,7 @@ import hmac
 import html
 import ipaddress
 import json
+import re
 import secrets
 import time
 from urllib.parse import urlsplit
@@ -64,6 +65,8 @@ class Mailbox(DurableObject):
           CREATE TABLE IF NOT EXISTS ap_settings(id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER, config TEXT);
           CREATE TABLE IF NOT EXISTS ap_limits(source TEXT, action TEXT, period INTEGER, n INTEGER,
             PRIMARY KEY(source,action,period));
+          CREATE TABLE IF NOT EXISTS ap_subscription_status(id INTEGER PRIMARY KEY CHECK(id=1),
+            attempt TEXT, at REAL, callback_host TEXT, outcome TEXT);
         ''')
         self.app = None
         saved = self.db.execute('SELECT version,config FROM ap_settings WHERE id=1').fetchone()
@@ -100,12 +103,12 @@ class Mailbox(DurableObject):
             required = ' required' if name == 'public_url' or not self.app else ''
             hint = ' — leave blank to keep the saved value' if self.app and name != 'public_url' else ''
             body += '<label>%s%s<input type="%s" name="%s" value="%s"%s></label>' % (label, hint, kind, name, html.escape(value, quote=True), required)
-        body += '<label>Dot callback hostnames<textarea name="callback_hosts" placeholder="Exact official hostnames; blank keeps the saved list"></textarea></label><small>Enter exact official hostnames separated by commas. AgentPeers reports an unapproved hostname safely during subscription setup.</small><button>Save this connection</button></form><p>Peer messages are reports from agents. They never grant permission to publish, spend or change access.</p>'
+        body += '<label>Dot callback hostnames<textarea name="callback_hosts" placeholder="Exact official hostnames; blank keeps the saved list"></textarea></label><small>Enter exact official hostnames separated by commas. AgentPeers reports an unapproved hostname safely during subscription setup.</small><button>Save this connection</button><button formaction="/status" formnovalidate>Check receiving connection</button></form><p>Peer messages are reports from agents. They never grant permission to publish, spend or change access.</p>'
         # no-referrer makes browsers send Origin:null for ordinary form POSTs.
         # Send only this origin, never a credential-bearing path or query.
         return response(200, body, {'Referrer-Policy': 'strict-origin', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}, 'text/html; charset=utf-8')
 
-    def save_setup(self, args, origin, source):
+    def authorize_owner(self, args, source, action):
         key = self.owner_key()
         # Bound failed owner attempts even before the first configuration exists.
         limiter = self.app
@@ -116,9 +119,58 @@ class Mailbox(DurableObject):
                 db = self.db
             limiter = CloudApp.__new__(CloudApp)
             limiter.store = Initial()
-        limiter.limit(source, '/setup')
+        limiter.limit(source, action)
         if not hmac.compare_digest(args.get('owner_key', ''), key):
-            raise Rejected('Owner key did not match')
+            raise Rejected('Your AgentPeers password did not match')
+        return key
+
+    def owner_status(self, args, source):
+        self.authorize_owner(args, source, '/status')
+        subscriptions = self.db.execute('SELECT peer,url,expires FROM subscriptions WHERE active=1 AND expires>?', (time.time(),)).fetchall() if self.app else []
+        last = self.db.execute('SELECT at,callback_host,outcome FROM ap_subscription_status WHERE id=1').fetchone()
+        return response(200, {'configured': self.app is not None,
+            'active_receivers': [{'peer': row['peer'], 'callback_host': urlsplit(row['url']).hostname, 'expires_at': row['expires']} for row in subscriptions],
+            'last_subscription_attempt': dict(last) if last else None,
+            'approved_callback_hosts': self.app.store.config['callback_hosts'] if self.app else []})
+
+    def subscription_started(self, endpoint, resource, raw):
+        # One bounded, owner-only diagnostic row. Never retain a body, URL,
+        # credential, signing secret or client-supplied error text.
+        try:
+            payload = json.loads(raw)
+            if not isinstance(payload, dict) or payload.get('method') != 'events/subscribe' or 'id' not in payload:
+                return None
+            endpoint.auth(resource)
+            params = payload.get('params')
+            delivery = params.get('delivery') if isinstance(params, dict) else None
+            url = delivery.get('url', '') if isinstance(delivery, dict) else ''
+            host = urlsplit(url).hostname if isinstance(url, str) else None
+            host = host if host and re.fullmatch(r'[a-zA-Z0-9.-]{1,253}', host) else 'invalid'
+        except (Rejected, ValueError, TypeError):
+            return None
+        attempt = secrets.token_hex(8)
+        self.db.execute("INSERT OR REPLACE INTO ap_subscription_status VALUES(1,?,?,?,'started')", (attempt, time.time(), host))
+        return attempt
+
+    def subscription_finished(self, attempt, output):
+        if not attempt:
+            return
+        value = output[1]
+        error = value.get('error') if isinstance(value, dict) else None
+        message = error.get('message', '') if isinstance(error, dict) else ''
+        if 'observed hostname:' in message:
+            outcome = 'callback_host_not_approved'
+        elif 'Callback verification failed' in message:
+            outcome = 'callback_verification_failed'
+        elif error:
+            outcome = 'rejected'
+        else:
+            result = value.get('result') if isinstance(value, dict) else None
+            outcome = 'subscribed' if isinstance(result, dict) and result.get('id') else 'request_failed'
+        self.db.execute('UPDATE ap_subscription_status SET outcome=? WHERE id=1 AND attempt=?', (outcome, attempt))
+
+    def save_setup(self, args, origin, source):
+        key = self.authorize_owner(args, source, '/setup')
         current = self.app.store.config if self.app else None
         config = json.loads(json.dumps(current)) if current else {
             'peers': {'grokbot': {'name': 'Grokbot', 'platform': 'grokbot', 'key': secrets.token_urlsafe(32)},
@@ -192,12 +244,14 @@ class Mailbox(DurableObject):
         source = str(request.headers.get('CF-Connecting-IP', 'unknown'))
         try:
             self.owner_key()
-            if parsed.path in ('/', '/setup'):
-                if request.method == 'GET':
+            if parsed.path in ('/', '/setup', '/status'):
+                if request.method == 'GET' and parsed.path != '/status':
                     return self.setup_page(origin)
                 if request.method != 'POST' or request.headers.get('Origin') != origin:
                     raise Rejected('Save settings from this deployment’s own setup page')
                 raw = await bounded_body(request.body)
+                if parsed.path == '/status':
+                    return self.owner_status(form(raw), source)
                 return self.save_setup(form(raw), origin, source)
             if not self.app:
                 return response(503, {'error': 'Open /setup to connect your agents; no message was submitted'})
@@ -208,7 +262,9 @@ class Mailbox(DurableObject):
             if 'Transfer-Encoding' in headers:
                 del headers['Transfer-Encoding']
             endpoint = Endpoint(self.app, request.method, parsed.path + ('?' + parsed.query if parsed.query else ''), headers, raw, source)
+            attempt = self.subscription_started(endpoint, self.app.store.config['public_url'] + parsed.path, raw) if request.method == 'POST' and parsed.path.startswith('/mcp/') else None
             output = await run_async(endpoint.steps(), self.post)
+            self.subscription_finished(attempt, output)
             await self.arm()
             return response(*output)
         except Rejected as exc:

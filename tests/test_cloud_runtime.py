@@ -200,6 +200,37 @@ class CloudRuntime(unittest.TestCase):
         status,_,_=self.request('POST','/setup',urlencode(self.setup_args),headers={'Content-Type':'application/x-www-form-urlencoded','Origin':'null'});self.assertEqual(status,400)
         self.assertEqual(self.request('POST','/mcp/dot',{'id':1,'method':'tools/list'},self.grok)[0],401)
 
+    def test_owner_receiving_diagnostics_are_authenticated_bounded_and_secret_free(self):
+        headers={'Content-Type':'application/x-www-form-urlencoded','Origin':'http://127.0.0.1:'+str(self.port)}
+        def status(key='o'*40, override=None):
+            return self.request('POST','/status',urlencode({'owner_key':key}),headers={**headers, **(override or {})})
+        self.assertEqual(self.request('GET','/status')[0],400)
+        self.assertEqual(status(self.grok)[0],400)
+        self.assertEqual(status(override={'Origin':'https://outside.example'})[0],400)
+        self.assertEqual(status(override={'Origin':'null'})[0],400)
+        self.assertIsNone(status()[2]['last_subscription_attempt'])
+        params={'name':'message.created','arguments':{'recipient':'dot'},'delivery':{'mode':'webhook','url':'https://outside.example/do-not-record-this-token','secret':'whsec_'+base64.b64encode(b'k'*32).decode()}}
+        request={'jsonrpc':'2.0','id':1,'method':'events/subscribe','params':params}
+        self.assertEqual(self.request('POST','/mcp/dot',request)[0],401)
+        self.assertIsNone(status()[2]['last_subscription_attempt'])
+        token=self.connect_dot()
+        result=self.request('POST','/mcp/dot',request,token)[2]
+        self.assertIn('observed hostname: outside.example',result['error']['message'])
+        saved=status()[2]
+        self.assertEqual(saved['last_subscription_attempt']['callback_host'],'outside.example')
+        self.assertEqual(saved['last_subscription_attempt']['outcome'],'callback_host_not_approved')
+        self.assertEqual(saved['active_receivers'],[])
+        self.subscribe(token)
+        code,_,saved=status()
+        self.assertEqual(code,200)
+        self.assertEqual(saved['last_subscription_attempt']['outcome'],'subscribed')
+        self.assertEqual(saved['active_receivers'][0]['peer'],'dot')
+        self.assertEqual(saved['active_receivers'][0]['callback_host'],'callbacks.example')
+        serialized=json.dumps(saved)
+        for secret in ('do-not-record-this-token',params['delivery']['secret'],'o'*40,self.grok,token):
+            self.assertNotIn(secret,serialized)
+        self.assertNotIn('https://',serialized)
+
     def test_owner_update_preserves_the_peers_key_and_saved_mailbox(self):
         status,_,_=self.request('POST','/v1/call',{'tool':'send_message','arguments':{'to':'Dot','message':'Keep this message','scope':'Fixture','message_id':'preserved'}},self.grok);self.assertEqual(status,200)
         status,_,page=self.request('POST','/setup',urlencode(self.setup_args),headers={'Content-Type':'application/x-www-form-urlencoded','Origin':'http://127.0.0.1:'+str(self.port)});self.assertEqual(status,200)
