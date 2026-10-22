@@ -8,7 +8,7 @@ import secrets
 import stat
 import sys
 
-from .config import Rejected, load
+from .config import DEFAULT_DOT_CALLBACK_HOSTS, Rejected, load
 
 
 def initialize(directory, public_url):
@@ -17,7 +17,7 @@ def initialize(directory, public_url):
     s = directory.lstat()
     if not stat.S_ISDIR(s.st_mode) or s.st_uid != os.getuid() or s.st_mode & 0o077 or stat.S_ISLNK(s.st_mode):
         raise Rejected("Choose a private directory owned by your OS user (mode 0700)")
-    config = {"public_url": public_url, "owner_key": secrets.token_urlsafe(32), "callback_hosts": [], "oauth_redirect_hosts": ["chatgpt.com"],
+    config = {"public_url": public_url, "owner_key": secrets.token_urlsafe(32), "callback_hosts": list(DEFAULT_DOT_CALLBACK_HOSTS), "oauth_redirect_hosts": ["chatgpt.com"],
               "max_messages": 32, "conversation_seconds": 86400,
               "connections": [["grokbot", "dot"]], "peers": {
                   "grokbot": {"name": "Grokbot", "platform": "grokbot", "key": secrets.token_urlsafe(32), "webhook_url": "", "webhook_key": ""},
@@ -27,7 +27,7 @@ def initialize(directory, public_url):
     with os.fdopen(fd, "w") as stream:
         json.dump(config, stream, indent=2)
         stream.write("\n")
-    return {"config": str(path), "next": "Set the native Grokbot routine URL/key and approved Dot callback hosts in this private file. No agent was contacted and no service was started.", "secrets_printed": False}
+    return {"config": str(path), "next": "Set the native Grokbot routine URL/key and review the default Dot callback host in this private file. No agent was contacted and no service was started.", "secrets_printed": False}
 
 
 def main(argv=None):

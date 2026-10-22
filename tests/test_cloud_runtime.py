@@ -193,6 +193,27 @@ class CloudRuntime(unittest.TestCase):
     def test_native_transaction_rolls_back_an_interrupted_write(self):
         self.assertTrue(self.request('POST','/test/rollback',{})[2]['rolled_back'])
 
+    def test_new_setup_uses_verified_dot_host_without_widening_saved_choices(self):
+        self.request('POST','/test/reset',{})
+        headers={'Content-Type':'application/x-www-form-urlencoded','Origin':'http://127.0.0.1:'+str(self.port)}
+        owner=urlencode({'owner_key':'o'*40})
+        initial=self.request('POST','/status',owner,headers=headers)[2]
+        self.assertFalse(initial['configured'])
+        self.assertEqual(initial['active_receivers'],[])
+        args={**self.setup_args,'callback_hosts':''}
+        status,_,page=self.request('POST','/setup',urlencode(args),headers=headers)
+        self.assertEqual(status,200)
+        self.assertIn('Bridge settings saved',page)
+        self.assertIn('1. Connect Dot',page)
+        self.assertIn('2. Give Grokbot its messaging key',page)
+        saved=self.request('POST','/status',owner,headers=headers)[2]
+        self.assertEqual(saved['approved_callback_hosts'],['connectors.api.openai.com'])
+        # Explicit owner choices replace the starter; blank updates preserve them.
+        self.assertEqual(self.request('POST','/setup',urlencode({**args,'callback_hosts':'tenant-notify.example'}),headers=headers)[0],200)
+        self.assertEqual(self.request('POST','/setup',urlencode(args),headers=headers)[0],200)
+        saved=self.request('POST','/status',owner,headers=headers)[2]
+        self.assertEqual(saved['approved_callback_hosts'],['tenant-notify.example'])
+
     def test_owner_setup_cannot_be_changed_by_peer_or_foreign_origin(self):
         args={**self.setup_args,'owner_key':self.grok}
         status,_,_=self.request('POST','/setup',urlencode(args),headers={'Content-Type':'application/x-www-form-urlencoded','Origin':'http://127.0.0.1:'+str(self.port)});self.assertEqual(status,400)

@@ -113,6 +113,8 @@ class Store:
     def _public(self, row):
         conv = self.db.execute("SELECT scope FROM conversations WHERE id=?", (row["conversation_id"],)).fetchone()
         result = {k: row[k] for k in ("id", "conversation_id", "sender", "recipient", "body", "reply_to", "expects", "created", "read_at", "claimed_at", "state", "attempts", "detail")}
+        if result["read_at"] is not None:
+            result["detail"] = "Agent acknowledged reading this message"
         result.update(claimed_scope=conv["scope"], authority=AUTHORITY)
         result["replies"] = [r[0] for r in self.db.execute("SELECT id FROM messages WHERE reply_to=?", (row["id"],))]
         return result

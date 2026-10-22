@@ -8,6 +8,11 @@ import stat
 from urllib.parse import urlsplit
 
 
+# Verified against Dot's native subscription challenge. Only starter creation
+# uses this default; loading an existing owner's allowlist never widens it.
+DEFAULT_DOT_CALLBACK_HOSTS = ("connectors.api.openai.com",)
+
+
 class Rejected(ValueError):
     pass
 

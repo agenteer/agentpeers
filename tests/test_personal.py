@@ -92,6 +92,10 @@ class PersonalTests(unittest.TestCase):
         self.assertIsNone(row["read_at"])
         self.store.read("grokbot", "question")
         self.assertIsNone(self.store.get("dot", "question")["read_at"])
+        self.consume("grokbot", "question")
+        read = self.store.get("dot", "question")
+        self.assertEqual(read["state"], "read")
+        self.assertEqual(read["detail"], "Agent acknowledged reading this message")
 
     def test_duplicate_send_and_conflicting_id(self):
         self.send()
@@ -360,6 +364,7 @@ class PersonalTests(unittest.TestCase):
         result = initialize(directory, "https://bridge.example")
         self.assertFalse(result["secrets_printed"])
         self.assertEqual((directory / "config.json").stat().st_mode & 0o777, 0o600)
+        self.assertEqual(json.loads((directory / "config.json").read_text())["callback_hosts"], ["connectors.api.openai.com"])
         with self.assertRaises(FileExistsError):
             initialize(directory, "https://bridge.example")
 

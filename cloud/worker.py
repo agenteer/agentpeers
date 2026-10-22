@@ -15,7 +15,7 @@ from js import AbortSignal
 
 from backend import Database, CloudApp, CloudStore
 from agentpeers.personal.adapters import encode
-from agentpeers.personal.config import Rejected, validate
+from agentpeers.personal.config import DEFAULT_DOT_CALLBACK_HOSTS, Rejected, validate
 from agentpeers.personal.endpoint import Endpoint, form
 from agentpeers.personal.transport import run_async
 
@@ -103,7 +103,7 @@ class Mailbox(DurableObject):
             required = ' required' if name == 'public_url' or not self.app else ''
             hint = ' — leave blank to keep the saved value' if self.app and name != 'public_url' else ''
             body += '<label>%s%s<input type="%s" name="%s" value="%s"%s></label>' % (label, hint, kind, name, html.escape(value, quote=True), required)
-        body += '<label>Dot callback hostnames<textarea name="callback_hosts" placeholder="Exact official hostnames; blank keeps the saved list"></textarea></label><small>Enter exact official hostnames separated by commas. AgentPeers reports an unapproved hostname safely during subscription setup.</small><button>Save this connection</button><button formaction="/status" formnovalidate>Check receiving connection</button></form><p>Peer messages are reports from agents. They never grant permission to publish, spend or change access.</p>'
+        body += '<label>Dot callback hostnames<textarea name="callback_hosts" placeholder="Default: connectors.api.openai.com; blank keeps the saved list"></textarea></label><small>The starter uses Dot’s verified OpenAI notification host. Change it only if your Dot reports another official hostname. Separate exact hostnames with commas.</small><button>Save this connection</button><button formaction="/status" formnovalidate>Check receiving connection</button></form><p>Peer messages are reports from agents. They never grant permission to publish, spend or change access.</p>'
         # no-referrer makes browsers send Origin:null for ordinary form POSTs.
         # Send only this origin, never a credential-bearing path or query.
         return response(200, body, {'Referrer-Policy': 'strict-origin', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}, 'text/html; charset=utf-8')
@@ -175,13 +175,13 @@ class Mailbox(DurableObject):
         config = json.loads(json.dumps(current)) if current else {
             'peers': {'grokbot': {'name': 'Grokbot', 'platform': 'grokbot', 'key': secrets.token_urlsafe(32)},
                       'dot': {'name': 'Dot', 'platform': 'dot', 'key': secrets.token_urlsafe(32)}},
-            'connections': [['grokbot', 'dot']], 'oauth_redirect_hosts': ['chatgpt.com'],
+            'connections': [['grokbot', 'dot']], 'oauth_redirect_hosts': ['chatgpt.com'], 'callback_hosts': list(DEFAULT_DOT_CALLBACK_HOSTS),
             'max_messages': 32, 'conversation_seconds': 86400}
         public_url = args.get('public_url', origin).rstrip('/')
         if current and current['public_url'] != public_url:
             raise Rejected('Changing the public address requires an explicit migration; existing grants are preserved')
         config.update(public_url=public_url, owner_key=key)
-        if args.get('callback_hosts', '').strip() or not current:
+        if args.get('callback_hosts', '').strip():
             config['callback_hosts'] = [h.strip() for h in args.get('callback_hosts', '').split(',') if h.strip()]
         for field in ('webhook_url', 'webhook_key'):
             if args.get(field) or not current:
@@ -191,7 +191,7 @@ class Mailbox(DurableObject):
         saved = {k: v for k, v in config.items() if k != 'owner_key'}
         self.db.execute('INSERT OR REPLACE INTO ap_settings VALUES(1,1,?)', (json.dumps(saved),))
         self.configure(saved)
-        body = '<!doctype html><meta charset="utf-8"><title>AgentPeers connected</title><h1>Your connection is saved</h1><p>Add this MCP address to your existing Dot using OAuth:</p><code>%s/mcp/dot</code><h2>Grokbot messaging key</h2><p>Copy this key into Grokbot’s masked secret card once. It lets Grokbot identify itself when starting a conversation. Enter it only in that card:</p><pre>%s</pre><p>Your AgentPeers password is different: it is for you to approve connections. Grokbot uses its messaging key for ordinary messages. Replies through the saved routine use their own message-specific callback.</p><a href="/setup">Connection settings</a>' % (html.escape(public_url), html.escape(config['peers']['grokbot']['key']))
+        body = '<!doctype html><meta charset="utf-8"><title>AgentPeers setup saved</title><h1>Bridge settings saved</h1><h2>1. Connect Dot</h2><p>Add this MCP address to your existing Dot using OAuth. On its approval page, enter your AgentPeers password from your password manager:</p><code>%s/mcp/dot</code><h2>2. Give Grokbot its messaging key</h2><p>Copy this key into Grokbot’s masked secret card once. It lets Grokbot identify itself when starting a conversation. Enter it only in that card:</p><pre>%s</pre><p>Your AgentPeers password approves connections. Grokbot uses its separate messaging key for ordinary messages. After connecting both agents, ask Dot in its own chat to listen for Grokbot messages, then verify a short question and reply.</p><a href="/setup">Connection settings</a>' % (html.escape(public_url), html.escape(config['peers']['grokbot']['key']))
         return response(200, body, {'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"}, 'text/html; charset=utf-8')
 
     async def post(self, url, body, headers):
