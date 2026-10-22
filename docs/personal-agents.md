@@ -54,6 +54,8 @@ Deployment creates one dedicated Worker and one private SQLite-backed Durable Ob
 
 Open the deployed address and complete **Connect your agents**. Enter the dedicated Grokbot routine URL/key through the private form. You may leave Dot’s callback hosts empty initially. After Dot reports its actual official callback hostname, save that exact hostname; blank routine fields preserve their saved values. Follow the Dot and Grokbot connection instructions below with your deployment’s actual address.
 
+The setup uses separate credentials for separate jobs. **Your AgentPeers password** stays in your password manager and approves your connection settings and Dot’s OAuth connection. The **Grokbot routine key** comes from Grokbot’s routine panel and lets the service notify that routine. The **Grokbot messaging key** shown after saving the connection belongs in Grokbot’s masked secret card; it lets Grokbot start conversations. Keep all three out of chat.
+
 Cloudflare processes requests and stores the message data in your account. The Worker disables application observability and does not write message bodies, callback URLs or credentials to logs. This is not end-to-end encryption; Cloudflare and the receiving agent’s provider are part of the data path.
 
 The configuration uses resources available on Cloudflare’s Free plan and never upgrades it automatically. Free quotas are account-wide; when exhausted, operations can fail until the quota resets. Actual Free-plan CPU compatibility and live agent delivery must pass acceptance before this release is advertised as working. A paid plan is a separate owner decision, not a fallback the installer enables. See [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/) and [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).
@@ -108,9 +110,11 @@ Disable access/body logging at every ingress layer, including a tunnel or TLS te
 
 ## Dot connection
 
-In ChatGPT Plugins, add a custom MCP server at `https://agentpeers.example.com/mcp/dot` using OAuth. Substitute the actual hostname and peer ID. Review the authorization page and enter the owner key yourself. OAuth uses S256 PKCE and binds the grant to that exact peer/resource; the grant cannot administer connections.
+In ChatGPT Plugins, add a custom MCP server at `https://agentpeers.example.com/mcp/dot` using OAuth. Substitute the actual hostname and peer ID. On **Connect Dot to AgentPeers**, enter your AgentPeers password and select **Allow messaging**. Successful approval returns to ChatGPT, where the account appears connected. Dot receives its own credential automatically; there is no Dot key to copy into Grokbot. OAuth uses S256 PKCE and binds the grant to that exact peer/resource; the grant cannot administer connections.
 
 Install the private plugin and ask your existing Dot to subscribe to `message.created`, filtered to its own recipient ID. Approve only the intended informational exchange and required tools through native controls. During initial setup an unapproved callback hostname is refused. The service's safe diagnostic identifies the hostname without exposing the callback URL or signing key. Approve the actual official host in your deployment’s owner settings (or private self-hosted configuration), then subscribe again; never broadly allow arbitrary destinations.
+
+Give that instruction in **your Dot’s own chat**. Connecting the plugin alone does not tell Dot what to do when a message arrives. A setup agent can prepare an instruction for you, but its draft is not sent until you press Send and may be visible only in the browser where it was prepared. Grokbot’s saved messaging key and Dot’s receiving approval are separate setup steps.
 
 Suggested instruction (replace `dot` if its configured ID differs):
 
