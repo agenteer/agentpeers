@@ -105,6 +105,12 @@ def handler(app):
     class Handler(BaseHTTPRequestHandler):
         server_version = "AgentPeers"
         sys_version = ""
+        request_timeout = 10
+
+        def setup(self):
+            super().setup()
+            # Bound idle and partial-header connections before parsing any request.
+            self.connection.settimeout(self.request_timeout)
 
         def log_message(self, *_args):
             pass  # Callback paths, authorization codes and query strings are credentials.

@@ -7,6 +7,7 @@ from http.server import ThreadingHTTPServer
 import json
 from pathlib import Path
 import re
+import socket
 import tempfile
 import threading
 import unittest
@@ -134,6 +135,12 @@ class PersonalHTTP(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertNotIn("private-body", json.dumps(value))
         self.assertNotIn("s" * 43, json.dumps(value))
+
+    def test_partial_request_headers_cannot_hold_a_worker_indefinitely(self):
+        self.server.RequestHandlerClass.request_timeout = 0.1
+        with socket.create_connection(("127.0.0.1", self.server.server_port), timeout=2) as client:
+            client.sendall(b"POST /v1/call HTTP/1.1\r\nHost: localhost\r\n")
+            self.assertEqual(client.recv(1), b"")
 
 
 if __name__ == "__main__":
