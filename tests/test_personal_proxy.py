@@ -121,7 +121,8 @@ class PersonalProxy(journey.PersonalHTTP):
                 self.assertEqual(activity["maximum"], 8)
             finally:
                 release.set()
-            self.assertTrue(all(f.result(timeout=5)[0] == 200 for f in pending))
+            statuses = [f.result(timeout=5)[0] for f in pending]
+            self.assertEqual(statuses, [200] * 12, 'All admitted or queued requests should finish after release')
 
     def test_proxy_refuses_chunked_body_before_backend(self):
         response = self.raw(b"POST /v1/call HTTP/1.1\r\nHost: bridge.example\r\nTransfer-Encoding: chunked\r\n\r\n1\r\nx\r\n0\r\n\r\n")
