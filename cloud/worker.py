@@ -94,7 +94,7 @@ class Mailbox(DurableObject):
             body += '<p role="alert">' + html.escape(error) + '</p>'
         if self.app:
             body += '<p>Your connection is configured. Saving again preserves messages, peer keys and agent grants.</p>'
-        body += '<form method="post" action="/setup"><label>Your owner key<input type="password" name="owner_key" required autocomplete="off"></label>'
+        body += '<form method="post" action="/setup"><label>Your AgentPeers password<input type="password" name="owner_key" required autocomplete="off"></label>'
         fields = [('public_url', 'This deployment’s HTTPS address', origin, 'url'), ('webhook_url', 'Grokbot messaging routine URL', '', 'url'), ('webhook_key', 'Grokbot routine key', '', 'password')]
         for name, label, value, kind in fields:
             required = ' required' if name == 'public_url' or not self.app else ''
@@ -139,7 +139,7 @@ class Mailbox(DurableObject):
         saved = {k: v for k, v in config.items() if k != 'owner_key'}
         self.db.execute('INSERT OR REPLACE INTO ap_settings VALUES(1,1,?)', (json.dumps(saved),))
         self.configure(saved)
-        body = '<!doctype html><meta charset="utf-8"><title>AgentPeers connected</title><h1>Your connection is saved</h1><p>Add this MCP address to your existing Dot using OAuth:</p><code>%s/mcp/dot</code><p>For Grokbot to start conversations, store this peer key using its native masked secret input. Never send it in chat:</p><pre>%s</pre><p>Keep your owner key private. The saved messaging routine can receive scoped callbacks without the general peer key.</p><a href="/setup">Connection settings</a>' % (html.escape(public_url), html.escape(config['peers']['grokbot']['key']))
+        body = '<!doctype html><meta charset="utf-8"><title>AgentPeers connected</title><h1>Your connection is saved</h1><p>Add this MCP address to your existing Dot using OAuth:</p><code>%s/mcp/dot</code><h2>Grokbot messaging key</h2><p>Copy this key into Grokbot’s masked secret card once. It lets Grokbot identify itself when starting a conversation. Enter it only in that card:</p><pre>%s</pre><p>Your AgentPeers password is different: it is for you to approve connections. Grokbot uses its messaging key for ordinary messages. Replies through the saved routine use their own message-specific callback.</p><a href="/setup">Connection settings</a>' % (html.escape(public_url), html.escape(config['peers']['grokbot']['key']))
         return response(200, body, {'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"}, 'text/html; charset=utf-8')
 
     async def post(self, url, body, headers):
