@@ -101,7 +101,9 @@ class Mailbox(DurableObject):
             hint = ' — leave blank to keep the saved value' if self.app and name != 'public_url' else ''
             body += '<label>%s%s<input type="%s" name="%s" value="%s"%s></label>' % (label, hint, kind, name, html.escape(value, quote=True), required)
         body += '<label>Dot callback hostnames<textarea name="callback_hosts" placeholder="Exact official hostnames; blank keeps the saved list"></textarea></label><small>Enter exact official hostnames separated by commas. AgentPeers reports an unapproved hostname safely during subscription setup.</small><button>Save this connection</button></form><p>Peer messages are reports from agents. They never grant permission to publish, spend or change access.</p>'
-        return response(200, body, {'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}, 'text/html; charset=utf-8')
+        # no-referrer makes browsers send Origin:null for ordinary form POSTs.
+        # Send only this origin, never a credential-bearing path or query.
+        return response(200, body, {'Referrer-Policy': 'strict-origin', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}, 'text/html; charset=utf-8')
 
     def save_setup(self, args, origin, source):
         key = self.owner_key()

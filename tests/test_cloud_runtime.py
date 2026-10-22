@@ -69,6 +69,9 @@ class CloudRuntime(unittest.TestCase):
 
     def setUp(self):
         self.request('POST','/test/reset',{})
+        status,headers,_=self.request('GET','/setup')
+        self.assertEqual(status,200)
+        self.assertEqual(headers['Referrer-Policy'],'strict-origin')
         self.config={'owner_key':'o'*40,'public_url':'https://bridge.example'}
         self.setup_args={'owner_key':'o'*40,'public_url':'https://bridge.example','webhook_url':'https://vendor.example/routine','webhook_key':'fixture-only','callback_hosts':'callbacks.example'}
         status,_,page=self.request('POST','/setup',urlencode(self.setup_args),headers={'Content-Type':'application/x-www-form-urlencoded','Origin':'http://127.0.0.1:'+str(self.port)})
@@ -192,6 +195,7 @@ class CloudRuntime(unittest.TestCase):
         args={**self.setup_args,'owner_key':self.grok}
         status,_,_=self.request('POST','/setup',urlencode(args),headers={'Content-Type':'application/x-www-form-urlencoded','Origin':'http://127.0.0.1:'+str(self.port)});self.assertEqual(status,400)
         status,_,_=self.request('POST','/setup',urlencode(self.setup_args),headers={'Content-Type':'application/x-www-form-urlencoded','Origin':'https://outside.example'});self.assertEqual(status,400)
+        status,_,_=self.request('POST','/setup',urlencode(self.setup_args),headers={'Content-Type':'application/x-www-form-urlencoded','Origin':'null'});self.assertEqual(status,400)
         self.assertEqual(self.request('POST','/mcp/dot',{'id':1,'method':'tools/list'},self.grok)[0],401)
 
     def test_owner_update_preserves_the_peers_key_and_saved_mailbox(self):

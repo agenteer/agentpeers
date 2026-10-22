@@ -59,8 +59,9 @@ class PersonalHTTP(unittest.TestCase):
         self.assertEqual(status, 201)
         verifier = "v" * 43
         args = {"client_id": client["client_id"], "redirect_uri": client["redirect_uris"][0], "resource": "https://bridge.example/mcp/dot", "response_type": "code", "code_challenge_method": "S256", "code_challenge": base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("="), "state": "return-state"}
-        status, _, page = self.request("GET", "/oauth/authorize?" + urlencode(args))
+        status, approval_headers, page = self.request("GET", "/oauth/authorize?" + urlencode(args))
         self.assertEqual(status, 200)
+        self.assertEqual(approval_headers['Referrer-Policy'], 'strict-origin')
         fields = {html.unescape(k): html.unescape(v) for k, v in re.findall('type="hidden" name="([^"]+)" value="([^"]*)"', page)}
         status, headers, _ = self.request("POST", "/oauth/authorize", urlencode({**fields, "owner_key": self.config["owner_key"]}), headers={"Content-Type": "application/x-www-form-urlencoded", "Origin": self.config["public_url"]})
         self.assertEqual(status, 303)
