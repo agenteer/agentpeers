@@ -43,6 +43,8 @@ class OAuth:
             raise Rejected("Use a public OAuth client with S256 PKCE")
         client = "client_" + secrets.token_urlsafe(24)
         with self.store.lock:
+            if self.store.db.execute("SELECT count(*) FROM oauth_clients").fetchone()[0] >= 128:
+                raise Rejected("Client registration limit reached; owner maintenance required")
             self.store.db.execute("INSERT INTO oauth_clients VALUES(?,?)", (client, json.dumps(redirects)))
         return {"client_id": client, "redirect_uris": redirects, "token_endpoint_auth_method": "none", "grant_types": ["authorization_code", "refresh_token"], "response_types": ["code"]}
 
@@ -77,6 +79,7 @@ class OAuth:
             raise Rejected("Owner approval failed")
         code = secrets.token_urlsafe(32)
         with self.store.lock:
+            self.store.db.execute("DELETE FROM oauth_codes WHERE expires<=?", (self.store.clock(),))
             self.store.db.execute("INSERT INTO oauth_codes VALUES(?,?,?,?,?,?)", (digest(code), args["client_id"], args["redirect_uri"], args["code_challenge"], args["resource"], self.store.clock() + 120))
         return args["redirect_uri"] + ("&" if "?" in args["redirect_uri"] else "?") + urlencode({"code": code, "state": args.get("state", ""), "iss": self.store.config["public_url"]})
 
@@ -85,6 +88,7 @@ class OAuth:
         self.resource_peer(resource)
         now = self.store.clock()
         with self.store.lock:
+            self.store.db.execute("DELETE FROM oauth_tokens WHERE expires<=?", (now,))
             if args.get("grant_type") == "authorization_code":
                 row = self.store.db.execute("SELECT * FROM oauth_codes WHERE hash=?", (digest(args.get("code", "")),)).fetchone()
                 verifier = args.get("code_verifier", "")

@@ -1,11 +1,12 @@
 """Personal-agent contracts. All transports are injected; no live account or agent calls."""
 import base64
 from concurrent.futures import ThreadPoolExecutor
-import copy
+from contextlib import closing
 import hashlib
 import hmac
 import json
 import os
+import sqlite3
 from pathlib import Path
 import tempfile
 import unittest
@@ -361,6 +362,18 @@ class PersonalTests(unittest.TestCase):
         self.assertEqual((directory / "config.json").stat().st_mode & 0o777, 0o600)
         with self.assertRaises(FileExistsError):
             initialize(directory, "https://bridge.example")
+
+    def test_foreign_database_is_refused_without_schema_changes(self):
+        path = Path(self.directory.name) / "valuable.sqlite3"
+        with closing(sqlite3.connect(path)) as db:
+            db.execute("CREATE TABLE unrelated(value TEXT)")
+            db.execute("INSERT INTO unrelated VALUES('preserve')")
+            db.commit()
+        with self.assertRaises(Rejected):
+            Store(path, self.config)
+        with closing(sqlite3.connect(path)) as db:
+            self.assertEqual(db.execute("SELECT value FROM unrelated").fetchone()[0], "preserve")
+            self.assertEqual(db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall(), [("unrelated",)])
 
     def test_duplicate_form_fields_rejected(self):
         with self.assertRaises(Rejected):

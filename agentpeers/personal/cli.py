@@ -90,7 +90,10 @@ def main(argv=None):
         finally:
             store.close()
             os.close(lock)
-    except (Rejected, OSError, ValueError, KeyError):
+    except Rejected as exc:
+        print(json.dumps({"error": str(exc)}), file=sys.stderr)
+        raise SystemExit(1)
+    except (OSError, ValueError, KeyError):
         # Do not expose a configuration parse error that might include a secret's source line.
         print(json.dumps({"error": "Personal-agent configuration or operation failed. Check private file permissions, required fields, service lock and command arguments."}), file=sys.stderr)
         raise SystemExit(1)

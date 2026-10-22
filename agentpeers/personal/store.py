@@ -14,6 +14,14 @@ class Store:
         self.lock = threading.RLock()
         self.db = sqlite3.connect(str(path), check_same_thread=False, isolation_level=None)
         self.db.row_factory = sqlite3.Row
+        application = self.db.execute("PRAGMA application_id").fetchone()[0]
+        version = self.db.execute("PRAGMA user_version").fetchone()[0]
+        populated = self.db.execute("SELECT 1 FROM sqlite_master WHERE type='table' LIMIT 1").fetchone()
+        if application not in (0, 0x41504752) or version not in (0, 1) or populated and application != 0x41504752:
+            self.db.close()
+            raise Rejected("Refusing a foreign or unsupported database; use the separate personal-agent directory")
+        self.db.execute("PRAGMA application_id=1095780178")  # 0x41504752, APGR
+        self.db.execute("PRAGMA user_version=1")
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.executescript("""
           CREATE TABLE IF NOT EXISTS conversations(id TEXT PRIMARY KEY, a TEXT, b TEXT,
