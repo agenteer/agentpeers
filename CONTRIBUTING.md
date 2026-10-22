@@ -15,7 +15,7 @@ git diff --check
 
 No third-party runtime packages are needed. Tests use temporary stores and fixture sockets; they must not contact live agents or depend on your private client configuration. Some sandboxes prohibit Unix socket binding: run through normal host-access approval rather than weakening protections. GitHub CI covers macOS with Python 3.10 and 3.13. The runtime adapter is currently macOS-only.
 
-The test entrypoint isolates the default message/policy directory, including when desktop wake is enabled in the operator's real installation. Personal-agent HTTP tests bind only temporary loopback listeners. Source tests and live-agent acceptance remain separate.
+The test entrypoint isolates the default message/policy directory, including when desktop wake is enabled in the operator's real installation. Personal-agent HTTP tests bind only temporary loopback listeners. Optional proxy tests run when HAProxy is on PATH, or when `AGENTPEERS_HAPROXY` names its executable; otherwise they are skipped. They exercise the actual OAuth/message journey through the deployment configuration, body limits, slow-request deadlines and backend concurrency. Source tests and live-agent acceptance remain separate.
 
 For plugin changes, test a relocated copy with spaces in its path, MCP initialization and tools/list, missing Python, and version consistency across both plugin manifests, the server and pyproject.toml. Run `python3 scripts/package.py` after committing; it writes a ZIP and SHA-256 sidecar under ignored `dist/`, using only tracked files from that commit.
 

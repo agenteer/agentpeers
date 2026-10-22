@@ -69,7 +69,9 @@ Doctor makes no network calls. Valid configuration and `/health` do not establis
 
 An optional [Linux service template](../deploy/personal/agentpeers-personal.service) uses a dedicated user, private persistent directory and bounded resources. It does not install itself or change host ingress. Have the host's owner admit the workload and provision its exact paths before enabling it.
 
-Disable reverse-proxy request/body logging or redact query strings and `/callbacks/` paths: they can contain authorization codes or message-scoped credentials. Limit bodies to 256 KiB, terminate TLS at the reverse proxy, and keep its upstream loopback-only. Configuration, databases and backups stay outside repositories and public directories.
+A [standard HAProxy configuration](../deploy/personal/haproxy.cfg) supplies the HTTP admission layer behind the owner-managed HTTPS endpoint: loopback port 8765 forwards only to this service, with no request logs, a 256 KiB body limit, bounded connections and queues, separate absolute 15-second header/body deadlines and no upstream replay. Replace its example hostname and validate with `haproxy -c -f deploy/personal/haproxy.cfg`. HAProxy is an optional deployment dependency, separate from the Python runtime. The recipe has passed fixture acceptance on HAProxy 3.4.4; run the same proxy tests with the host’s actual package before public activation. The HTTPS endpoint must route this dedicated hostname only to that listener; it must not publish an existing private-service route.
+
+Disable access/body logging at every ingress layer, including a tunnel or TLS terminator: paths, query strings and headers can contain credentials. Configure finite TLS handshake/connection limits there as well. Keep both HTTP listeners loopback-only. Configuration, databases and backups stay outside repositories and public directories. No automatic retention or new backup destination is enabled; agree a recovery and state-growth policy before ordinary always-on use.
 
 ## Dot connection
 
