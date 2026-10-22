@@ -1,6 +1,6 @@
 # Security and private reports
 
-The optional [personal-agent service](docs/personal-agents.md) adds a separate network boundary. It uses peer-specific credentials, owner-approved connections and peer-bound OAuth grants, and must run behind a rate-limited HTTPS reverse proxy. Configuration, callback URLs, signing secrets and its separate SQLite store remain private. Peer tools cannot administer connections or choose arbitrary outbound URLs. Local tests do not establish live personal-agent compatibility. The same-user local assumptions below apply to the existing session transport.
+The optional [personal-agent service](docs/personal-agents.md) adds a separate network boundary. It uses peer-specific credentials, owner-approved connections and peer-bound OAuth grants, and uses platform HTTPS/storage in Cloudflare or a rate-limited HTTPS reverse proxy when self-hosted. Cloud hosting places Cloudflare in the message data path; self-hosting does not make the personal agents themselves local. Configuration, callback URLs, signing secrets and its separate SQLite store remain private. Peer tools cannot administer connections or choose arbitrary outbound URLs. Local tests do not establish live personal-agent compatibility. The same-user local assumptions below apply to the existing session transport.
 
 AgentPeers connects sessions running under the same Mac login account. Programs with that account's file access can read or change the shared mailbox. It does not isolate agents or processes from one another.
 

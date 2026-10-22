@@ -34,7 +34,10 @@ def private_file(path):
 
 
 def load(path):
-    config = json.loads(private_file(path).read_text())
+    return validate(json.loads(private_file(path).read_text()))
+
+
+def validate(config):
     base = urlsplit(config["public_url"])
     if base.scheme != "https" or not base.hostname or base.username or base.password or base.query or base.fragment or base.path not in ("", "/") or base.port not in (None, 443):
         raise Rejected("public_url must be an HTTPS origin on port 443")

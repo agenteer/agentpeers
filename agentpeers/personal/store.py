@@ -8,6 +8,29 @@ from . import AUTHORITY
 from .config import Rejected, identifier
 
 
+SCHEMA = """
+          CREATE TABLE IF NOT EXISTS conversations(id TEXT PRIMARY KEY, a TEXT, b TEXT,
+            scope TEXT, expires REAL, stopped INTEGER DEFAULT 0);
+          CREATE TABLE IF NOT EXISTS messages(id TEXT PRIMARY KEY, conversation_id TEXT,
+            sender TEXT, recipient TEXT, body TEXT, reply_to TEXT UNIQUE, expects TEXT,
+            created REAL, read_at REAL, claimed_at REAL, state TEXT, attempts INTEGER DEFAULT 0,
+            next_attempt REAL DEFAULT 0, detail TEXT, callback_hash TEXT, lease TEXT);
+          CREATE TABLE IF NOT EXISTS subscriptions(id TEXT PRIMARY KEY, peer TEXT,
+            url TEXT, secret TEXT, old_secret TEXT, rotate_until REAL, expires REAL, active INTEGER);
+          CREATE TABLE IF NOT EXISTS audit(seq INTEGER PRIMARY KEY, message_id TEXT, at REAL, stage TEXT);
+          CREATE TABLE IF NOT EXISTS oauth_clients(id TEXT PRIMARY KEY, redirects TEXT);
+          CREATE TABLE IF NOT EXISTS oauth_codes(hash TEXT PRIMARY KEY, client TEXT,
+            redirect TEXT, challenge TEXT, resource TEXT, expires REAL);
+          CREATE TABLE IF NOT EXISTS oauth_tokens(hash TEXT PRIMARY KEY, client TEXT,
+            resource TEXT, kind TEXT, expires REAL);
+
+          CREATE INDEX IF NOT EXISTS messages_pending ON messages(state,next_attempt,created);
+          CREATE INDEX IF NOT EXISTS messages_recipient ON messages(recipient,read_at,created);
+          CREATE INDEX IF NOT EXISTS messages_conversation ON messages(conversation_id);
+          CREATE INDEX IF NOT EXISTS audit_message ON audit(message_id,seq);
+"""
+
+
 class Store:
     def __init__(self, path, config, clock=time.time):
         self.config, self.clock = config, clock
@@ -23,30 +46,28 @@ class Store:
         self.db.execute("PRAGMA application_id=1095780178")  # 0x41504752, APGR
         self.db.execute("PRAGMA user_version=1")
         self.db.execute("PRAGMA journal_mode=WAL")
-        self.db.executescript("""
-          CREATE TABLE IF NOT EXISTS conversations(id TEXT PRIMARY KEY, a TEXT, b TEXT,
-            scope TEXT, expires REAL, stopped INTEGER DEFAULT 0);
-          CREATE TABLE IF NOT EXISTS messages(id TEXT PRIMARY KEY, conversation_id TEXT,
-            sender TEXT, recipient TEXT, body TEXT, reply_to TEXT UNIQUE, expects TEXT,
-            created REAL, read_at REAL, claimed_at REAL, state TEXT, attempts INTEGER DEFAULT 0,
-            next_attempt REAL DEFAULT 0, detail TEXT, callback_hash TEXT, lease TEXT);
-          CREATE TABLE IF NOT EXISTS subscriptions(id TEXT PRIMARY KEY, peer TEXT,
-            url TEXT, secret TEXT, old_secret TEXT, rotate_until REAL, expires REAL, active INTEGER);
-          CREATE TABLE IF NOT EXISTS audit(seq INTEGER PRIMARY KEY, message_id TEXT, at REAL, stage TEXT);
-          CREATE TABLE IF NOT EXISTS oauth_clients(id TEXT PRIMARY KEY, redirects TEXT);
-          CREATE TABLE IF NOT EXISTS oauth_codes(hash TEXT PRIMARY KEY, client TEXT,
-            redirect TEXT, challenge TEXT, resource TEXT, expires REAL);
-          CREATE TABLE IF NOT EXISTS oauth_tokens(hash TEXT PRIMARY KEY, client TEXT,
-            resource TEXT, kind TEXT, expires REAL);
-        """)
+        self.db.executescript(SCHEMA)
+        self.recover()
+
+    def recover(self):
         # Never replay a possibly accepted native Grokbot run after a crash.
         with self.lock:
             from .adapters import ADAPTERS
             for row in self.db.execute("SELECT id,recipient FROM messages WHERE state='dispatching'").fetchall():
-                platform = config["peers"].get(row["recipient"], {}).get("platform")
+                platform = self.config["peers"].get(row["recipient"], {}).get("platform")
                 adapter = ADAPTERS.get(platform)
                 state = "queued" if adapter and adapter.notification_retry_safe else "unknown"
                 self.db.execute("UPDATE messages SET state=?,detail='Service restarted during submission',lease=NULL WHERE id=?", (state, row["id"]))
+
+    def transaction(self, operation):
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            value = operation()
+            self.db.execute("COMMIT")
+            return value
+        except BaseException:
+            self.db.execute("ROLLBACK")
+            raise
 
     def close(self):
         with self.lock:
@@ -142,16 +163,12 @@ class Store:
                 count = self.db.execute("SELECT count(*) FROM messages WHERE conversation_id=?", (cid,)).fetchone()[0]
                 if count >= self.config.get("max_messages", 32):
                     raise Rejected("Conversation message limit reached; stop and consult the owner")
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
+            def commit():
                 if not original:
                     self.db.execute("INSERT INTO conversations(id,a,b,scope,expires) VALUES(?,?,?,?,?)", (cid, actor, target, scope, self.clock() + self.config.get("conversation_seconds", 86400)))
                 self.db.execute("INSERT INTO messages(id,conversation_id,sender,recipient,body,reply_to,expects,created,state) VALUES(?,?,?,?,?,?,?,?,?)", (mid, cid, actor, target, body, reply_to, expects, self.clock(), "queued"))
                 self.event(mid, "saved")
-                self.db.execute("COMMIT")
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
+            self.transaction(commit)
             return self._public(self._message(mid))
 
     def read(self, actor, mid):

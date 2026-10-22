@@ -11,6 +11,7 @@ import ssl
 from urllib.parse import urlsplit
 
 from .config import Rejected, digest
+from .transport import run
 
 
 def encode(value):
@@ -68,6 +69,9 @@ class Events:
         self.store, self.post = store, post
 
     def subscribe(self, actor, params):
+        return run(self.subscribe_steps(actor, params), self.post)
+
+    def subscribe_steps(self, actor, params):
         if self.store.config["peers"][actor]["platform"] != "dot":
             raise Rejected("This peer does not use the Dot event adapter")
         delivery = params.get("delivery", {})
@@ -98,7 +102,7 @@ class Events:
                 raise Rejected("Peer already has an active subscription; unsubscribe it before moving the receiving conversation")
         challenge = secrets.token_urlsafe(32)
         try:
-            status, body = signed_post(self.post, url, secret, sid, secrets.token_hex(16), {"type": "verification", "challenge": challenge}, self.store.clock())
+            status, body = yield signed_post(lambda *request: request, url, secret, sid, secrets.token_hex(16), {"type": "verification", "challenge": challenge}, self.store.clock())
             echoed = json.loads(body).get("challenge", "")
             if not 200 <= status < 300 or not isinstance(echoed, str) or not hmac.compare_digest(echoed, challenge):
                 raise Rejected("Callback challenge failed")
@@ -113,6 +117,7 @@ class Events:
             if other:
                 raise Rejected("A concurrent subscription was saved; inspect the existing receiver before changing it")
             self.store.db.execute("INSERT OR REPLACE INTO subscriptions VALUES(?,?,?,?,?,?,?,1)", (sid, actor, url, secret, previous, rotation_end, now + ttl / 1000))
+            self.store.db.execute("UPDATE messages SET next_attempt=0 WHERE recipient=? AND state='waiting' AND detail='Dot subscription missing or expired'", (actor,))
         from datetime import datetime, timezone
         return {"id": sid, "refreshBefore": datetime.fromtimestamp(now + ttl / 1000, timezone.utc).isoformat(), "cursor": None, "truncated": False}
 
@@ -156,6 +161,9 @@ class Dispatcher:
         self.store, self.post = store, post
 
     def once(self):
+        return run(self.steps(), self.post)
+
+    def steps(self):
         s = self.store
         with s.lock:
             now = s.clock()
@@ -181,7 +189,7 @@ class Dispatcher:
             s.db.execute("UPDATE messages SET state='dispatching',attempts=attempts+1,lease=?,callback_hash=? WHERE id=?", (lease, digest(callback), row["id"]))
             s.event(row["id"], "native_submission_started")
         try:
-            status, _ = adapter.deliver(self.post, s.config, peer, row, callback, subscription, now)
+            status, _ = yield adapter.deliver(lambda *request: request, s.config, peer, row, callback, subscription, now)
             if 200 <= status < 300:
                 state, detail = "accepted", "Native transport accepted; agent reading is unverified"
             elif status == 429 or adapter.notification_retry_safe and status >= 500:

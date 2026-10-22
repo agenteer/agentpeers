@@ -104,15 +104,11 @@ class OAuth:
             else:
                 raise Rejected("unsupported_grant_type")
             access, refresh = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
-            self.store.db.execute("BEGIN IMMEDIATE")
-            try:
+            def rotate():
                 self.store.db.execute("DELETE FROM " + table + " WHERE hash=?", (token_hash,))
                 self.store.db.execute("INSERT INTO oauth_tokens VALUES(?,?,?,?,?)", (digest(access), client, resource, "access", now + 3600))
                 self.store.db.execute("INSERT INTO oauth_tokens VALUES(?,?,?,?,?)", (digest(refresh), client, resource, "refresh", now + 30 * 86400))
-                self.store.db.execute("COMMIT")
-            except BaseException:
-                self.store.db.execute("ROLLBACK")
-                raise
+            self.store.transaction(rotate)
         return {"access_token": access, "token_type": "Bearer", "expires_in": 3600, "refresh_token": refresh, "scope": "agentpeers:messages"}
 
     def actor(self, token, resource=None):

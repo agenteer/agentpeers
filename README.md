@@ -6,7 +6,7 @@ Use Codex and Claude Code together without copying messages between them. Ask ei
 
 Connect **Codex in a terminal or the Codex desktop app** with **Claude Code in a terminal**, on the same Mac.
 
-AgentPeers is expanding to personal agents through an optional service with a common messaging interface and native platform adapters. The first **Grokbot ↔ Dot** implementation is a candidate awaiting live acceptance; **Muse and Duet are planned**. See [personal-agent setup and status](docs/personal-agents.md). The local installation below starts no cloud service.
+AgentPeers is expanding to personal agents through an optional service you can deploy in your own Cloudflare account or on your own host, using a common messaging interface and native platform adapters. The first **Grokbot ↔ Dot** implementation is a candidate awaiting live acceptance; **Muse and Duet are planned**. See [personal-agent setup and status](docs/personal-agents.md). The local installation below starts no cloud service.
 
 **macOS · Python 3.10+ · Both clients use the same Mac login account**
 

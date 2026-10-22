@@ -1,0 +1,227 @@
+"""Single-owner cloud deployment. No model API, polling loop or shared hosted tenant."""
+import asyncio
+import hashlib
+import hmac
+import html
+import ipaddress
+import json
+import secrets
+import time
+from urllib.parse import urlsplit
+
+from workers import WorkerEntrypoint, DurableObject, Response, fetch
+from js import AbortSignal
+
+from backend import Database, CloudApp, CloudStore
+from agentpeers.personal.adapters import encode
+from agentpeers.personal.config import Rejected, validate
+from agentpeers.personal.endpoint import Endpoint, form
+from agentpeers.personal.transport import run_async
+
+
+async def bounded_body(stream, maximum=262144):
+    if stream is None:
+        return b''
+    reader = stream.getReader()
+    async def consume():
+        chunks, size = [], 0
+        while True:
+            item = await reader.read()
+            if item.done:
+                return b''.join(chunks)
+            chunk = bytes(item.value.to_py())
+            size += len(chunk)
+            if size > maximum:
+                raise Rejected('Request or response exceeds 256 KiB')
+            chunks.append(chunk)
+    try:
+        return await asyncio.wait_for(consume(), timeout=10)
+    finally:
+        await reader.cancel()
+        reader.releaseLock()
+
+
+def response(status, value=None, headers=None, content_type='application/json'):
+    body = b'' if value is None else encode(value) if content_type == 'application/json' else value.encode()
+    h = {'Content-Type': content_type, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff', **(headers or {})}
+    return Response(body, status=status, headers=h)
+
+
+class Mailbox(DurableObject):
+    def __init__(self, ctx, env):
+        super().__init__(ctx, env)
+        self.db = Database(ctx.storage)
+        known = self.db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='ap_metadata'").fetchone()
+        if known:
+            version = self.db.execute("SELECT application,version FROM ap_metadata WHERE id=1").fetchone()
+            if not version or version['application'] != 'AgentPeers' or version['version'] != 1:
+                raise Rejected('Refusing an unsupported or foreign mailbox; preserve its data')
+        elif self.db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name NOT LIKE '_cf_%' LIMIT 1").fetchone():
+            raise Rejected('Refusing a foreign mailbox; use a new dedicated namespace')
+        else:
+            self.db.executescript("CREATE TABLE ap_metadata(id INTEGER PRIMARY KEY,application TEXT,version INTEGER); INSERT INTO ap_metadata VALUES(1,'AgentPeers',1)")
+        self.db.executescript('''
+          CREATE TABLE IF NOT EXISTS ap_settings(id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER, config TEXT);
+          CREATE TABLE IF NOT EXISTS ap_limits(source TEXT, action TEXT, period INTEGER, n INTEGER,
+            PRIMARY KEY(source,action,period));
+        ''')
+        self.app = None
+        saved = self.db.execute('SELECT version,config FROM ap_settings WHERE id=1').fetchone()
+        if saved:
+            if saved['version'] != 1:
+                raise Rejected('Unsupported mailbox version; preserve data and restore compatible code')
+            self.configure(json.loads(saved['config']))
+
+    def owner_key(self):
+        value = str(getattr(self.env, 'AGENTPEERS_OWNER_KEY', ''))
+        if len(value) < 32 or value == 'replace-with-a-new-random-owner-key':
+            raise Rejected('Set AGENTPEERS_OWNER_KEY to a new random key of at least 32 characters in Cloudflare secrets')
+        return value
+
+    def configure(self, config):
+        config['owner_key'] = self.owner_key()
+        config = validate(config)
+        if self.app is None:
+            self.app = CloudApp(CloudStore(self.ctx.storage, config))
+        else:
+            self.app.store.config = config
+
+    def setup_page(self, origin, error=''):
+        body = '''<!doctype html><meta charset="utf-8"><title>Connect your agents · AgentPeers</title>
+<style>body{font:17px system-ui;max-width:680px;margin:48px auto;padding:0 20px;line-height:1.5}label{display:block;margin:20px 0}input,textarea,button{display:block;box-sizing:border-box;width:100%;padding:10px;font:inherit}button{cursor:pointer}small{color:#555}</style>
+<h1>Connect your agents</h1><p>This is your private AgentPeers deployment. Connect your existing Grokbot and Dot; each keeps its own tools and permissions.</p>'''
+        if error:
+            body += '<p role="alert">' + html.escape(error) + '</p>'
+        if self.app:
+            body += '<p>Your connection is configured. Saving again preserves messages, peer keys and agent grants.</p>'
+        body += '<form method="post" action="/setup"><label>Your owner key<input type="password" name="owner_key" required autocomplete="off"></label>'
+        fields = [('public_url', 'This deployment’s HTTPS address', origin, 'url'), ('webhook_url', 'Grokbot messaging routine URL', '', 'url'), ('webhook_key', 'Grokbot routine key', '', 'password')]
+        for name, label, value, kind in fields:
+            required = ' required' if name == 'public_url' or not self.app else ''
+            hint = ' — leave blank to keep the saved value' if self.app and name != 'public_url' else ''
+            body += '<label>%s%s<input type="%s" name="%s" value="%s"%s></label>' % (label, hint, kind, name, html.escape(value, quote=True), required)
+        body += '<label>Dot callback hostnames<textarea name="callback_hosts" placeholder="Exact official hostnames; blank keeps the saved list"></textarea></label><small>Enter exact official hostnames separated by commas. AgentPeers reports an unapproved hostname safely during subscription setup.</small><button>Save this connection</button></form><p>Peer messages are reports from agents. They never grant permission to publish, spend or change access.</p>'
+        return response(200, body, {'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}, 'text/html; charset=utf-8')
+
+    def save_setup(self, args, origin, source):
+        key = self.owner_key()
+        # Bound failed owner attempts even before the first configuration exists.
+        limiter = self.app
+        if limiter is None:
+            class Initial:
+                config = {'owner_key': key}
+                clock = staticmethod(time.time)
+                db = self.db
+            limiter = CloudApp.__new__(CloudApp)
+            limiter.store = Initial()
+        limiter.limit(source, '/setup')
+        if not hmac.compare_digest(args.get('owner_key', ''), key):
+            raise Rejected('Owner key did not match')
+        current = self.app.store.config if self.app else None
+        config = json.loads(json.dumps(current)) if current else {
+            'peers': {'grokbot': {'name': 'Grokbot', 'platform': 'grokbot', 'key': secrets.token_urlsafe(32)},
+                      'dot': {'name': 'Dot', 'platform': 'dot', 'key': secrets.token_urlsafe(32)}},
+            'connections': [['grokbot', 'dot']], 'oauth_redirect_hosts': ['chatgpt.com'],
+            'max_messages': 32, 'conversation_seconds': 86400}
+        public_url = args.get('public_url', origin).rstrip('/')
+        if current and current['public_url'] != public_url:
+            raise Rejected('Changing the public address requires an explicit migration; existing grants are preserved')
+        config.update(public_url=public_url, owner_key=key)
+        if args.get('callback_hosts', '').strip() or not current:
+            config['callback_hosts'] = [h.strip() for h in args.get('callback_hosts', '').split(',') if h.strip()]
+        for field in ('webhook_url', 'webhook_key'):
+            if args.get(field) or not current:
+                config['peers']['grokbot'][field] = args.get(field, '')
+        config = validate(config)
+        # Owner key stays in the platform secret, not a duplicated saved setting.
+        saved = {k: v for k, v in config.items() if k != 'owner_key'}
+        self.db.execute('INSERT OR REPLACE INTO ap_settings VALUES(1,1,?)', (json.dumps(saved),))
+        self.configure(saved)
+        body = '<!doctype html><meta charset="utf-8"><title>AgentPeers connected</title><h1>Your connection is saved</h1><p>Add this MCP address to your existing Dot using OAuth:</p><code>%s/mcp/dot</code><p>For Grokbot to start conversations, store this peer key using its native masked secret input. Never send it in chat:</p><pre>%s</pre><p>Keep your owner key private. The saved messaging routine can receive scoped callbacks without the general peer key.</p><a href="/setup">Connection settings</a>' % (html.escape(public_url), html.escape(config['peers']['grokbot']['key']))
+        return response(200, body, {'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"}, 'text/html; charset=utf-8')
+
+    async def post(self, url, body, headers):
+        parsed = urlsplit(url)
+        allowed = set(self.app.store.config['callback_hosts']) | {urlsplit(p.get('webhook_url', '')).hostname for p in self.app.store.config['peers'].values()}
+        if parsed.scheme != 'https' or parsed.hostname not in allowed or parsed.port not in (None, 443) or parsed.username or parsed.password or parsed.fragment:
+            raise Rejected('Outbound hostname is not approved')
+        try:
+            ipaddress.ip_address(parsed.hostname)
+        except ValueError:
+            pass
+        else:
+            raise Rejected('IP-literal destinations are forbidden')
+        result = await fetch(url, method='POST', body=body, headers={'Content-Type': 'application/json', **headers}, redirect='manual', signal=AbortSignal.timeout(10000))
+        return result.status, await bounded_body(result.body)
+
+    async def arm(self):
+        if not self.app:
+            return
+        now, wake = time.time(), None
+        for peer_id, peer in self.app.store.config['peers'].items():
+            ready = peer['platform'] != 'dot' or self.db.execute('SELECT 1 FROM subscriptions WHERE peer=? AND active=1 AND expires>?', (peer_id, now)).fetchone()
+            # Missing subscriptions wait for a real subscription change, not polling.
+            column = 'min(m.next_attempt,c.expires)' if ready else 'c.expires'
+            row = self.db.execute("SELECT min(" + column + ") AS due FROM messages m JOIN conversations c ON c.id=m.conversation_id WHERE m.recipient=? AND m.state IN ('queued','waiting') AND c.stopped=0", (peer_id,)).fetchone()
+            if row and row['due'] is not None:
+                wake = row['due'] if wake is None else min(wake, row['due'])
+        if wake is not None:
+            due = int(max(now + 0.1, wake) * 1000)
+            existing = await self.ctx.storage.getAlarm()
+            if existing is None or float(existing) > due:
+                await self.ctx.storage.setAlarm(due)
+
+    async def alarm(self, *_args):
+        if not self.app:
+            return
+        # One bounded notification per invocation; no periodic poll when idle.
+        try:
+            await run_async(self.app.dispatcher.steps(), self.post)
+            self.app.worker_warning = False
+        except Exception:
+            self.app.worker_warning = True
+            self.app.store.recover()
+        finally:
+            await self.arm()
+
+    async def fetch(self, request):
+        parsed = urlsplit(request.url)
+        origin = parsed.scheme + '://' + parsed.netloc
+        source = str(request.headers.get('CF-Connecting-IP', 'unknown'))
+        try:
+            self.owner_key()
+            if parsed.path in ('/', '/setup'):
+                if request.method == 'GET':
+                    return self.setup_page(origin)
+                if request.method != 'POST' or request.headers.get('Origin') != origin:
+                    raise Rejected('Save settings from this deployment’s own setup page')
+                raw = await bounded_body(request.body)
+                return self.save_setup(form(raw), origin, source)
+            if not self.app:
+                return response(503, {'error': 'Open /setup to connect your agents; no message was submitted'})
+            raw = await bounded_body(request.body) if request.method == 'POST' else b''
+            # The platform has parsed/dechunked one request; normalize its known byte count.
+            headers = request.headers
+            headers['Content-Length'] = str(len(raw))
+            if 'Transfer-Encoding' in headers:
+                del headers['Transfer-Encoding']
+            endpoint = Endpoint(self.app, request.method, parsed.path + ('?' + parsed.query if parsed.query else ''), headers, raw, source)
+            output = await run_async(endpoint.steps(), self.post)
+            await self.arm()
+            return response(*output)
+        except Rejected as exc:
+            return response(400, {'error': str(exc)})
+        except Exception:
+            return response(400, {'error': 'Request failed; inspect existing message status before retrying'})
+
+
+class Default(WorkerEntrypoint):
+    async def fetch(self, request):
+        if request.method not in ('GET', 'POST'):
+            return response(405, {'error': 'Use GET or POST'})
+        try:
+            if int(request.headers.get('Content-Length', '0')) > 262144:
+                return response(413, {'error': 'Request exceeds 256 KiB'})
+        except ValueError:
+            return response(400, {'error': 'Invalid request length'})
+        return await self.env.MAILBOX.getByName('owner').fetch(request)

@@ -2,7 +2,7 @@
 
 AgentPeers connects existing personal agents through their native tools and wake-up mechanisms. Its first adapters are **Grokbot** and **Dot**. Either can initiate or reply without a coding-session relay. Each agent retains its own memory, tools and permissions.
 
-**Status: implementation candidate, live acceptance pending.** Local tests exercise conversations and the actual HTTP server with fixture vendor transports. Muse and Duet are future adapters, not supported connections. Installing the local AgentPeers plugin does not start this service or replace a working connection.
+**Status: implementation candidate, live acceptance pending.** Cloud tests run the production Worker in Cloudflare’s local runtime; self-hosted tests exercise the actual HTTP server. Both use fixture vendor transports. Muse and Duet are future adapters, not supported connections. Installing the local AgentPeers plugin does not start this service or replace a working connection.
 
 ## Experience and architecture
 
@@ -19,19 +19,52 @@ flowchart LR
 
 The common service owns discovery, conversations, reply links, duplicate suppression and delivery state. Vendor adapters own notifications and explicitly declare whether an uncertain notification can safely be retried. New adapters need the platform's actual receiving/sending interfaces and a real acceptance test; a model API is not access to an existing personal agent.
 
-The service uses a separate `personal.sqlite3`, never the local session mailbox or experimental Drive ledger. It does not read private agent databases, expose native session sockets, synchronize memories or provide a remote shell.
+Cloud deployment uses its own SQLite-backed Durable Object. Self-hosting uses a separate `personal.sqlite3`. Neither shares the local coding-session mailbox or the private Drive adapter’s ledger. It does not read private agent databases, expose native session sockets, synchronize memories or provide a remote shell.
 
-## Requirements
+## Choose where it runs
 
-- An always-available Linux or macOS host with Python 3.10+, persistent storage and a stable public HTTPS origin on port 443. No model API or third-party Python runtime package is required.
-- An owner-managed HTTPS reverse proxy forwarding to loopback `127.0.0.1:8766`, plus service supervision, TLS, connection/request limits and private backups.
-- An existing Grokbot with cloud HTTP capability and a separate native webhook routine. Preserve its other jobs.
-- An existing Dot whose account/workspace permits custom MCP plugins and event-triggered tasks. MCP Events targets protocol `2026-07-28`; availability requires live verification.
-- Human authorization to connect these particular peers and exchange the intended information. Native action review remains authoritative.
+| Option | What you need | Where messages live |
+| --- | --- | --- |
+| Cloudflare | Your own Cloudflare account; no server to maintain | Your account’s private SQLite-backed Durable Object |
+| Self-hosted | An always-on Linux or macOS host, Python 3.10+, persistent storage and public HTTPS | A private directory on that host |
 
-The host must remain available; your Mac need not remain awake when the service and both agents are in the cloud. An ephemeral laptop tunnel is not an always-available deployment. Hosting and agent usage remain separate dependencies. This is a single-owner service with multiple registered peers, not a multi-customer hosted product.
+Cloud is the first deployment target. Each installation belongs to its owner; there is no shared AgentPeers-hosted service. Your Mac can be off when the service and both personal agents are online. The existing Codex ↔ Claude Code plugin stays local and needs neither option.
 
-## Install and private configuration
+Self-hosting keeps the message store off Cloudflare. Grokbot and Dot still run on their vendors’ infrastructure, and must be able to reach the service over HTTPS. Self-hosting does not make either agent local or keep messages away from the agent that receives them.
+
+Both options require an existing Grokbot with cloud HTTP capability and a dedicated native messaging routine, and an existing Dot with custom MCP plugins and event-triggered tasks. Preserve the agents’ other jobs. This adapter targets MCP Events `2026-07-28`; availability in the actual account needs live verification. Connecting peers never grants new business permissions or bypasses native action review.
+
+## Cloud setup
+
+Use a reviewed checkout containing the cloud candidate. The public one-click installer will accompany the accepted release; the current public release does not contain this candidate yet.
+
+Build tools are **Node.js 22+**, **Python 3.10+ with pip**, **Wrangler 4.152.0** and the official **workers-runtime-sdk 1.9.5**. The lockfile pins JavaScript dependencies; the Python SDK is pinned with its wheel hash. These tools run during deployment, not inside either personal agent.
+
+```sh
+npm ci
+npx wrangler login
+npm run check:cloud
+npm run deploy
+npx wrangler secret put AGENTPEERS_OWNER_KEY
+```
+
+Use a new Worker name if `agentpeers-personal` already belongs to another installation. Before deployment, check your account’s plan and existing resources. The owner key must be a new random secret of at least 32 characters; generate it in your password manager, save it there, and enter it only into the native secret prompt and your deployment’s owner forms. Never paste it in agent chat. The placeholder in `.dev.vars.example` is refused by the service.
+
+Deployment creates one dedicated Worker and one private SQLite-backed Durable Object. It uses the account’s HTTPS `workers.dev` address; no domain, DNS change, server, cron job, model API or paid upgrade is required by this recipe. The service refuses setup until its owner secret exists. It bundles only an allowlist of runtime modules, never the checkout, local credentials or test endpoints.
+
+Open the deployed address and complete **Connect your agents**. Enter the dedicated Grokbot routine URL/key through the private form. You may leave Dot’s callback hosts empty initially. After Dot reports its actual official callback hostname, save that exact hostname; blank routine fields preserve their saved values. Follow the Dot and Grokbot connection instructions below with your deployment’s actual address.
+
+Cloudflare processes requests and stores the message data in your account. The Worker disables application observability and does not write message bodies, callback URLs or credentials to logs. This is not end-to-end encryption; Cloudflare and the receiving agent’s provider are part of the data path.
+
+The configuration uses resources available on Cloudflare’s Free plan and never upgrades it automatically. Free quotas are account-wide; when exhausted, operations can fail until the quota resets. Actual Free-plan CPU compatibility and live agent delivery must pass acceptance before this release is advertised as working. A paid plan is a separate owner decision, not a fallback the installer enables. See [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/) and [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).
+
+The mailbox keeps at most **5,000 messages**, then refuses new messages while preserving existing ones. Conversations are bounded to 32 messages and 24 hours by default. There is no automatic deletion or routine polling: persisted platform alarms run only for pending delivery, bounded retries or conversation expiry. Agree a backup and maintenance policy before sustained use; the candidate has no owner export/pruning interface yet.
+
+## Self-hosted setup
+
+Use an always-available Linux or macOS host with Python 3.10+, persistent storage, a stable public HTTPS origin on port 443, service supervision and private backups. No third-party Python runtime package is required. An owner-managed HTTPS reverse proxy forwards to loopback `127.0.0.1:8766` and supplies connection/request limits. An ephemeral laptop tunnel is not an always-available deployment.
+
+### Install and private configuration
 
 From a reviewed checkout containing this extension:
 
@@ -77,7 +110,7 @@ Disable access/body logging at every ingress layer, including a tunnel or TLS te
 
 In ChatGPT Plugins, add a custom MCP server at `https://agentpeers.example.com/mcp/dot` using OAuth. Substitute the actual hostname and peer ID. Review the authorization page and enter the owner key yourself. OAuth uses S256 PKCE and binds the grant to that exact peer/resource; the grant cannot administer connections.
 
-Install the private plugin and ask your existing Dot to subscribe to `message.created`, filtered to its own recipient ID. Approve only the intended informational exchange and required tools through native controls. During initial setup an unapproved callback hostname is refused. The service's safe diagnostic identifies the hostname without exposing the callback URL or signing key. Approve the actual official host in private configuration, restart, and subscribe again; never broadly allow arbitrary destinations.
+Install the private plugin and ask your existing Dot to subscribe to `message.created`, filtered to its own recipient ID. Approve only the intended informational exchange and required tools through native controls. During initial setup an unapproved callback hostname is refused. The service's safe diagnostic identifies the hostname without exposing the callback URL or signing key. Approve the actual official host in your deployment’s owner settings (or private self-hosted configuration), then subscribe again; never broadly allow arbitrary destinations.
 
 Suggested instruction (replace `dot` if its configured ID differs):
 
@@ -124,7 +157,7 @@ Dot notifications can retry with the same event ID, at most three attempts. Know
 
 Claimed work is never silently released after a crash; inspect native activity first, since an expired lease does not prove the earlier agent stopped. Automatic claimed-work recovery is not implemented. Acknowledgments do not wake senders; substantive replies do. Stopping cannot cancel a native run or HTTP request already in flight. Replies default to expects none to prevent courtesy loops.
 
-Stop the service before maintenance. Revoke a Dot's OAuth grants and subscriptions with:
+For self-hosting, stop the service before maintenance. Revoke a Dot's OAuth grants and subscriptions with:
 
 ```sh
 "$agentpeers_personal_python" -m agentpeers personal revoke \
@@ -135,7 +168,7 @@ To disconnect all messaging, also remove the peer's connections and rotate its d
 
 ## Acceptance
 
-Repository tests use temporary data and fixture transports. The loopback HTTP journey exercises OAuth discovery/approval/PKCE, authenticated MCP tools, a Grokbot callback, Dot events, actual fixture content, a follow-up and final consumption. It does not contact real agents or certify public TLS.
+Repository tests use temporary data and fixture transports. The cloud journey runs Python Workers with native Durable Object SQLite, transaction rollback and alarms; it verifies both initiators, OAuth, missing subscriptions, duplicates, body limits and a full runtime restart. A lost Grokbot acceptance response becomes unknown after restart and is not replayed. The loopback HTTP journey exercises OAuth discovery/approval/PKCE, authenticated MCP tools, a Grokbot callback, Dot events, actual fixture content, a follow-up and final consumption. It does not contact real agents or certify public TLS.
 
 Before ordinary use, verify each existing agent can initiate a harmless uniquely tagged question, obtain a substantive answer, ask a follow-up and consume the final response. Verify the actual plugin and saved native routine, busy behavior, missing/expired subscriptions, duplicates and restart behavior. Correlate native activity and actual responses, not just HTTP 200 or stored rows. Keep raw proof private. This implementation claims no live compatibility until those checks complete.
 
