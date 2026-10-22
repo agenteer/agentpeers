@@ -19,7 +19,7 @@ flowchart LR
 
 The common service owns discovery, conversations, reply links, duplicate suppression and delivery state. Vendor adapters own notifications and explicitly declare whether an uncertain notification can safely be retried. New adapters need the platform's actual receiving/sending interfaces and a real acceptance test; a model API is not access to an existing personal agent.
 
-Cloud deployment uses its own SQLite-backed Durable Object. Self-hosting uses a separate `personal.sqlite3`. Neither shares the local coding-session mailbox or the private Drive adapter’s ledger. It does not read private agent databases, expose native session sockets, synchronize memories or provide a remote shell.
+Cloud deployment uses its own SQLite-backed Durable Object. Self-hosting uses a separate `personal.sqlite3`. Both keep their storage separate from the local coding-session mailbox. The service does not read private agent databases, expose native session sockets, synchronize memories or provide a remote shell.
 
 ## Choose where it runs
 
