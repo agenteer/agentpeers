@@ -56,6 +56,8 @@ def verify_sdk(sdk):
 
 
 def prepare_sdk(root):
+    if sys.version_info < (3, 11):
+        raise SystemExit('Cloud deployment tools require Python 3.11+; the local bridge and self-hosted service support 3.10+')
     sdk = root / 'python_modules'
     marker = sdk / '.agentpeers-sdk'
     if sdk.is_symlink() or sdk.exists() and not marker.is_file():

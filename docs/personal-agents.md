@@ -38,7 +38,7 @@ Both options require an existing Grokbot with cloud HTTP capability and a dedica
 
 Use a reviewed checkout containing the cloud candidate. The public one-click installer will accompany the accepted release; the current public release does not contain this candidate yet.
 
-Build tools are **Node.js 22+**, **Python 3.10+ with pip**, **Wrangler 4.152.0** and the official **workers-runtime-sdk 1.9.5**. The lockfile pins JavaScript dependencies; the Python SDK is pinned with its wheel hash. These tools run during deployment, not inside either personal agent.
+Build tools are **Node.js 22+**, **Python 3.11+ with pip**, **Wrangler 4.152.0** and the official **workers-runtime-sdk 1.9.5**. The lockfile pins JavaScript dependencies; the Python SDK is pinned with its wheel hash. These tools run during deployment, not inside either personal agent. The local bridge and self-hosted service still support Python 3.10+.
 
 ```sh
 npm ci
