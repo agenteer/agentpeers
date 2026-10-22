@@ -176,7 +176,7 @@ To disconnect all messaging, also remove the peer's connections and rotate its d
 
 Repository tests use temporary data and fixture transports. The cloud journey runs Python Workers with native Durable Object SQLite, transaction rollback and alarms; it verifies both initiators, OAuth, missing subscriptions, duplicates, body limits and a full runtime restart. A lost Grokbot acceptance response becomes unknown after restart and is not replayed. The loopback HTTP journey exercises OAuth discovery/approval/PKCE, authenticated MCP tools, a Grokbot callback, Dot events, actual fixture content, a follow-up and final consumption. It does not contact real agents or certify public TLS.
 
-Before ordinary use, verify each existing agent can initiate a harmless uniquely tagged question, obtain a substantive answer, ask a follow-up and consume the final response. Verify the actual plugin and saved native routine, busy behavior, missing/expired subscriptions, duplicates and restart behavior. Correlate native activity and actual responses, not just HTTP 200 or stored rows. Keep raw proof private. This implementation claims no live compatibility until those checks complete.
+Before ordinary use, verify each existing agent can initiate a harmless uniquely tagged question, obtain a substantive answer, ask a follow-up and consume the final response. Verify the actual plugin and saved native routine, busy behavior, missing/expired subscriptions, duplicates and restart behavior. Correlate native activity and actual responses, not just HTTP 200 or stored rows. Keep raw proof private. Repeat the live checks for each new installation; fixture results alone do not establish compatibility with its accounts.
 
 ## References
 
