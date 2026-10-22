@@ -1,10 +1,12 @@
-# agentpeers
+# AgentPeers
 
 **Let your Codex and Claude Code sessions talk to each other.**
 
 Use Codex and Claude Code together without copying messages between them. Ask either agent to find the other session, ask questions, share findings and coordinate work.
 
 Connect **Codex in a terminal or the Codex desktop app** with **Claude Code in a terminal**, on the same Mac.
+
+AgentPeers is expanding to personal agents through an optional service with a common messaging interface and native platform adapters. The first **Grokbot ↔ Dot** implementation is a candidate awaiting live acceptance; **Muse and Duet are planned**. See [personal-agent setup and status](docs/personal-agents.md). The local installation below starts no cloud service.
 
 **macOS · Python 3.10+ · Both clients use the same Mac login account**
 
@@ -76,11 +78,11 @@ codex
 
 `start` reuses an existing server. For **Codex desktop**, open the app and use a chat with the plugin loaded. Setup checks whether that chat can receive. To also reach unloaded desktop chats, tell either agent:
 
-> Enable Agentpeers desktop wake. I understand it may select the destination chat in the app.
+> Enable AgentPeers desktop wake. I understand it may select the destination chat in the app.
 
 The agent runs its installed plugin’s `bin/agentpeers desktop-wake enable` once. From a source checkout, you can run `./bin/agentpeers desktop-wake enable` yourself.
 
-Both clients share this setting through the message-store directory. On a send to an unloaded desktop chat, Agentpeers opens that exact chat using the app’s native link, waits for its receiver, then delivers the message as tool output. **The app may select the destination chat.** It does not move the conversation into a terminal or add a background service. Use `desktop-wake disable` to return to loaded receivers only; `desktop-wake status` checks the setting without opening anything. Enable this only with the human’s permission; ordinary message authorization is still required.
+Both clients share this setting through the message-store directory. On a send to an unloaded desktop chat, AgentPeers opens that exact chat using the app’s native link, waits for its receiver, then delivers the message as tool output. **The app may select the destination chat.** It does not move the conversation into a terminal or add a background service. Use `desktop-wake disable` to return to loaded receivers only; `desktop-wake status` checks the setting without opening anything. Enable this only with the human’s permission; ordinary message authorization is still required.
 
 Open Claude Code normally in another terminal. Reload plugins or start fresh sessions after installation; Claude supports `/reload-plugins --force`.
 
@@ -138,7 +140,7 @@ sequenceDiagram
 | `unconfirmed` | Submission may have happened. Check receipts before deciding on another send; agentpeers never automatically replays it. |
 
 - **Busy agents:** messages follow native handling at a model/tool boundary. Running tools are not interrupted. A compatible idle receiver can start a turn.
-- **Closed or unloaded sessions:** there is no offline delivery queue or background retry. An exited Claude session cannot receive. With desktop wake enabled, Agentpeers can open an unloaded local Codex desktop chat during a new send; it does not replay previously saved messages.
+- **Closed or unloaded sessions:** there is no offline delivery queue or background retry. An exited Claude session cannot receive. With desktop wake enabled, AgentPeers can open an unloaded local Codex desktop chat during a new send; it does not replay previously saved messages.
 - **Codex desktop:** desktop wake is off by default. When enabled, opening the destination must establish a compatible receiver before any message is submitted. A timeout, unsupported receiver or failed app link leaves the message unavailable; an uncertain submission is never automatically retried. Completely quitting and relaunching the app is not covered by this wake test.
 - **Reply routes:** a sender receives a warning if its return route is missing or unverified. A warning is not delivery proof; an active caller may need to collect the saved reply from its mailbox.
 - **Other machines:** native cross-machine transport is not implemented. Do not sync the SQLite store or expose native sockets to a network.
@@ -199,4 +201,4 @@ For a standalone command, install the source in an isolated Python environment w
 
 Report bugs through [GitHub issues](https://github.com/agenteer/agentpeers/issues), with versions and redacted status. Keep credentials, transcripts, private paths and message stores out of issues. For sensitive reports, follow [SECURITY.md](SECURITY.md). See [CONTRIBUTING.md](CONTRIBUTING.md) and [CHANGELOG.md](CHANGELOG.md) for development and release guidance.
 
-Copyright © 2026 Agenteer LLC and Agentpeers contributors. [MIT licensed](LICENSE).
+Copyright © 2026 Agenteer LLC and AgentPeers contributors. [MIT licensed](LICENSE).

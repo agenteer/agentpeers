@@ -1,14 +1,14 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "agentpeers",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Let your Codex and Claude Code sessions talk to each other.",
   "license": "MIT",
   "extensions": {
     "com.openai": {
       "onboardingSkill": "./skills/setup/SKILL.md",
       "interface": {
-        "displayName": "Agentpeers",
+        "displayName": "AgentPeers",
         "shortDescription": "Let Codex and Claude Code talk to each other",
         "longDescription": "Ask either agent to find the other session, ask questions, share findings and coordinate work without relaying messages yourself. Connect Codex terminal or loaded desktop chats with Claude Code terminal sessions on one Mac. Python 3.10+ required.",
         "category": "Productivity"

@@ -9,6 +9,9 @@ from . import native
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "personal":
+        from .personal.cli import main as personal_main
+        return personal_main(sys.argv[2:])
     parser = argparse.ArgumentParser(description="Local Codex ↔ Claude Code peer messages; use native messaging first for same-runtime peers")
     parser.add_argument("--from", dest="actor", help="own session address; normally inferred")
     sub = parser.add_subparsers(dest="command", required=True)

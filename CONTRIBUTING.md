@@ -1,17 +1,21 @@
-# Contributing to Agentpeers
+# Contributing to AgentPeers
 
-Agentpeers connects existing Codex terminal or desktop sessions with Claude Code terminal sessions on one Mac. Keep changes focused on discovery, message delivery, receipts and understandable setup. Discuss new runtimes, remote transport or orchestration features in an issue before adding them.
+AgentPeers connects existing Codex terminal or desktop sessions with Claude Code terminal sessions on one Mac. Keep changes focused on discovery, message delivery, receipts and understandable setup. Discuss new runtimes, remote transport or orchestration features in an issue before adding them.
 
 ## Development
+
+Personal-agent adapters use the optional `agentpeers.personal` service. Keep common messaging independent of vendors; adapters declare native receiving and uncertainty behavior. Verify the existing personal agent before advertising support; model API calls are not substitutes. See [personal agents](docs/personal-agents.md).
 
 Clone the repository and use Python 3.10+:
 
 ```sh
-python3 -m unittest discover -s tests -v
+python3 scripts/test.py
 git diff --check
 ```
 
 No third-party runtime packages are needed. Tests use temporary stores and fixture sockets; they must not contact live agents or depend on your private client configuration. Some sandboxes prohibit Unix socket binding: run through normal host-access approval rather than weakening protections. GitHub CI covers macOS with Python 3.10 and 3.13. The runtime adapter is currently macOS-only.
+
+The test entrypoint isolates the default message/policy directory, including when desktop wake is enabled in the operator's real installation. Personal-agent HTTP tests bind only temporary loopback listeners. Source tests and live-agent acceptance remain separate.
 
 For plugin changes, test a relocated copy with spaces in its path, MCP initialization and tools/list, missing Python, and version consistency across both plugin manifests, the server and pyproject.toml. Run `python3 scripts/package.py` after committing; it writes a ZIP and SHA-256 sidecar under ignored `dist/`, using only tracked files from that commit.
 

@@ -1,6 +1,8 @@
 # Security and private reports
 
-Agentpeers connects sessions running under the same Mac login account. Programs with that account's file access can read or change the shared mailbox. It does not isolate agents or processes from one another.
+The optional [personal-agent service](docs/personal-agents.md) adds a separate network boundary. It uses peer-specific credentials, owner-approved connections and peer-bound OAuth grants, and must run behind a rate-limited HTTPS reverse proxy. Configuration, callback URLs, signing secrets and its separate SQLite store remain private. Peer tools cannot administer connections or choose arbitrary outbound URLs. Local tests do not establish live personal-agent compatibility. The same-user local assumptions below apply to the existing session transport.
+
+AgentPeers connects sessions running under the same Mac login account. Programs with that account's file access can read or change the shared mailbox. It does not isolate agents or processes from one another.
 
 ## Boundary
 
@@ -11,11 +13,11 @@ Agentpeers connects sessions running under the same Mac login account. Programs 
 - Codex terminal delivery uses the documented local Unix WebSocket API. The socket alias and its resolved target must belong to this user in private directories. No network endpoint is opened.
 - Desktop wake is disabled by default. Explicit opt-in permits a new send to open a confirmed stored local chat using a fixed UUID-only app link. It may change the selected chat. It never puts message content in that link or takes the conversation into a terminal. Discovery remains read-only; only a compatible receiver can accept peer tool output. This does not bypass the destination’s permissions or turn agent reports into human instructions.
 - The Codex desktop interface is internal and version-sensitive. Unsupported delivery must fail without converting peer content into a human instruction.
-- The shared database is not encrypted by Agentpeers and has no automatic retention limit. Keep it private; do not sync it across machines or expose native sockets to a network.
+- The shared database is not encrypted by AgentPeers and has no automatic retention limit. Keep it private; do not sync it across machines or expose native sockets to a network.
 
 These are documented assumptions and implementation constraints, not protection against a compromised same-user process. Fixes target the current source version; update older installed copies and verify a real exchange again.
 
-Native names are cooperative routing labels within the same OS user. Reusing a unique name intentionally gives the replacement access to that name’s external Agentpeers conversation; it never grants access to private agent history or new human authority. Exact UUID addressing stays pinned. Name-resolution snapshots are not locks; retain the resolved session IDs and replacement/read identities when auditing a conversation.
+Native names are cooperative routing labels within the same OS user. Reusing a unique name intentionally gives the replacement access to that name’s external AgentPeers conversation; it never grants access to private agent history or new human authority. Exact UUID addressing stays pinned. Name-resolution snapshots are not locks; retain the resolved session IDs and replacement/read identities when auditing a conversation.
 
 ## Reporting a vulnerability
 

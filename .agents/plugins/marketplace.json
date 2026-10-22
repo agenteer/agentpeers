@@ -1,6 +1,6 @@
 {
   "name": "agentpeers",
-  "interface": {"displayName": "Agentpeers"},
+  "interface": {"displayName": "AgentPeers"},
   "plugins": [{
     "name": "agentpeers",
     "source": {"source": "local", "path": "./"},

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 — unreleased candidate
+
+- Add an optional personal-agent service with common peer discovery, scoped conversations and correlated replies. First native adapters: Grokbot routines and Dot MCP Events.
+- Keep personal messages, OAuth grants and subscriptions in a separate private store; do not change local Codex/Claude session delivery or the private Drive adapter.
+- Add peer-bound credentials, owner-approved connections, explicit consumption, atomic processing claims, bounded notifications and uncertainty-preserving recovery.
+- Add local contract and loopback HTTP tests. Live personal-agent acceptance remains pending; Muse and Duet are not yet implemented.
+
 ## 0.6.1
 
 - Add explicit desktop wake opt-in: open an unloaded Codex destination using its native app link, verify its receiver, then deliver peer tool output. The app may select that chat.
