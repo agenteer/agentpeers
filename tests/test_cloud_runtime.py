@@ -82,7 +82,9 @@ class CloudRuntime(unittest.TestCase):
         status,_,client=self.request('POST','/oauth/register',{'redirect_uris':['https://chatgpt.com/connector/oauth/test']});self.assertEqual(status,201)
         verifier='v'*43
         args={'client_id':client['client_id'],'redirect_uri':client['redirect_uris'][0],'resource':'https://bridge.example/mcp/dot','response_type':'code','code_challenge_method':'S256','code_challenge':base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('='),'state':'return-state'}
-        status,_,page=self.request('GET','/oauth/authorize?'+urlencode(args));self.assertEqual(status,200)
+        status,approval_headers,page=self.request('GET','/oauth/authorize?'+urlencode(args));self.assertEqual(status,200)
+        self.assertEqual(approval_headers['Content-Security-Policy'], "default-src 'none'; form-action 'self' https://chatgpt.com; frame-ancestors 'none'; base-uri 'none'")
+        self.assertIn('<form method="post" action="/oauth/authorize">', page)
         fields={html.unescape(k):html.unescape(v) for k,v in re.findall('type="hidden" name="([^"]+)" value="([^"]*)"',page)}
         status,headers,_=self.request('POST','/oauth/authorize',urlencode({**fields,'owner_key':'o'*40}),headers={'Content-Type':'application/x-www-form-urlencoded','Origin':'https://bridge.example'});self.assertEqual(status,303)
         code=parse_qs(urlsplit(headers['Location']).query)['code'][0]

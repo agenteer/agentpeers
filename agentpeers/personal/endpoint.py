@@ -73,10 +73,15 @@ class Endpoint:
                 args = form(parsed.query.encode())
                 self.app.oauth.validate_authorize(args)
                 peer = self.app.oauth.resource_peer(args["resource"])
+                # Chromium applies form-action to the 303 return as well as the
+                # POST. Permit only this validated client's owner-approved host;
+                # the password POST itself still goes to our same-origin route.
+                return_origin = "https://" + urlsplit(args["redirect_uri"]).hostname
+                policy = "default-src 'none'; form-action 'self' %s; frame-ancestors 'none'; base-uri 'none'" % return_origin
                 fields = {**args, "csrf": self.app.oauth.csrf(args)}
                 hidden = "".join('<input type="hidden" name="%s" value="%s">' % (html.escape(k, quote=True), html.escape(v, quote=True)) for k, v in fields.items())
                 body = '<!doctype html><meta charset="utf-8"><title>Connect AgentPeers</title><h1>Connect %s to AgentPeers</h1><p>This connection can read and send %s’s messages to the peers you connected. Enter your AgentPeers password to approve it. The password stays with AgentPeers; the client receives a separate messaging credential. This connection cannot manage peers or run commands.</p><form method="post" action="/oauth/authorize">%s<label>Your AgentPeers password <input name="owner_key" type="password" autocomplete="off" required></label><button type="submit">Allow messaging</button></form>' % (html.escape(self.app.store.config["peers"][peer]["name"]), html.escape(self.app.store.config["peers"][peer]["name"]), hidden)
-                return self.output(200, body, {"Referrer-Policy": "strict-origin", "Content-Security-Policy": "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}, "text/html; charset=utf-8")
+                return self.output(200, body, {"Referrer-Policy": "strict-origin", "Content-Security-Policy": policy}, "text/html; charset=utf-8")
             return self.output(404, {"error": "Not found"})
         except Rejected as exc:
             return self.output(400, {"error": str(exc)})

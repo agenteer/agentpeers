@@ -62,6 +62,8 @@ class PersonalHTTP(unittest.TestCase):
         status, approval_headers, page = self.request("GET", "/oauth/authorize?" + urlencode(args))
         self.assertEqual(status, 200)
         self.assertEqual(approval_headers['Referrer-Policy'], 'strict-origin')
+        self.assertEqual(approval_headers['Content-Security-Policy'], "default-src 'none'; form-action 'self' https://chatgpt.com; frame-ancestors 'none'; base-uri 'none'")
+        self.assertIn('<form method="post" action="/oauth/authorize">', page)
         fields = {html.unescape(k): html.unescape(v) for k, v in re.findall('type="hidden" name="([^"]+)" value="([^"]*)"', page)}
         status, headers, _ = self.request("POST", "/oauth/authorize", urlencode({**fields, "owner_key": self.config["owner_key"]}), headers={"Content-Type": "application/x-www-form-urlencoded", "Origin": self.config["public_url"]})
         self.assertEqual(status, 303)
