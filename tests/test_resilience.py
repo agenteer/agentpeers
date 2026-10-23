@@ -140,6 +140,19 @@ for line in sys.stdin:
                 native.codex_sessions()
             stored.assert_called_once_with(12)
 
+    def test_known_exact_recipient_still_works_after_discovery_failure(self):
+        with tempfile.TemporaryDirectory() as home, patch.dict(os.environ, {'AGENTPEERS_HOME': home}), \
+             patch.object(native, 'codex_sessions', side_effect=timed_out()) as discover, \
+             patch.object(native, 'claude_sessions', return_value=[{'id': A}]), \
+             patch.object(native, 'receive_route', return_value={'status': 'available'}), \
+             patch.object(native, 'send_codex', return_value={'transport': 'fixture'}) as send:
+            self.assertEqual(dispatch('list_sessions', {})['runtimes']['codex'], 'unknown')
+            result = dispatch('send_message', {'to': C, 'message': 'fixture question', 'scope': SCOPE}, A)
+            self.assertEqual(result['recipient'], C)
+            self.assertEqual(result['delivery'], 'submitted')
+            discover.assert_called_once()
+            send.assert_called_once()
+
     def test_discovery_deadline_prevents_another_request_after_budget(self):
         client = native.AppServer(timeout=12, deadline=10)
         client.proc = Mock()
