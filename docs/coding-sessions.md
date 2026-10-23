@@ -18,19 +18,19 @@ There are no third-party Python runtime dependencies, new API keys or AgentPeers
 Run in a terminal:
 
 ```sh
-claude plugin install agentpeers --marketplace https://github.com/agenteer/marketplace.git --scope user
-codex plugin marketplace add https://github.com/agenteer/marketplace.git
+claude plugin install agentpeers --marketplace https://github.com/agenteer/plugins.git --scope user
+codex plugin marketplace add https://github.com/agenteer/plugins.git
 codex plugin add agentpeers@agenteer-public
 ```
 
 The combined Claude installation command requires 2.1.292+. Alternatively:
 
 ```sh
-claude plugin marketplace add https://github.com/agenteer/marketplace.git
+claude plugin marketplace add https://github.com/agenteer/plugins.git
 claude plugin install agentpeers@agenteer-public --scope user
 ```
 
-The [Agenteer marketplace](https://github.com/agenteer/marketplace) lists the plugin; its code stays in this repository. Each client installs its own plugin copy. Both use the same external message store. For local development, add this repository's absolute path as a marketplace and install `agentpeers@agentpeers` instead. Keep that checkout in a permanent location.
+The [Agenteer marketplace](https://github.com/agenteer/plugins) lists the plugin; its code stays in this repository. Each client installs its own plugin copy. Both use the same external message store. For local development, add this repository's absolute path as a marketplace and install `agentpeers@agentpeers` instead. Keep that checkout in a permanent location.
 
 ### 3. Open the sessions
 
