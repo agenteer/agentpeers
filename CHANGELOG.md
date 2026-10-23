@@ -2,10 +2,11 @@
 
 ## 0.7.0 — unreleased candidate
 
-- Add an optional personal-agent service with common peer discovery, scoped conversations and correlated replies. First native adapters: Grokbot routines and Dot MCP Events.
+- Add the optional AgentPeers connection service for Grokbot ↔ Dot, alongside the existing local Codex ↔ Claude Code connection. First native adapters: Grokbot routines and Dot MCP Events.
 - Keep personal messages, OAuth grants and subscriptions in a separate private store; preserve local Codex/Claude session delivery.
 - Add peer-bound credentials, owner-approved connections, explicit consumption, atomic processing claims, bounded notifications and uncertainty-preserving recovery.
 - Add a standard optional proxy recipe with bounded connections, body size and request deadlines; verify it with real loopback proxy traffic.
+- Present AgentPeers as cross-platform communication between existing agents, with separate setup paths, scoped plugin listings and discoverable service CLI help.
 - Add cloud runtime, local contract and loopback HTTP tests. Live Grokbot ↔ Dot checks verified both initiators, replies and a follow-up from each agent. Muse and Duet are not yet implemented.
 
 ## 0.6.1

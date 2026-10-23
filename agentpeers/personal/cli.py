@@ -31,13 +31,15 @@ def initialize(directory, public_url):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="AgentPeers personal-agent messaging (optional HTTPS service)")
+    parser = argparse.ArgumentParser(prog="agentpeers personal", description="Manage the AgentPeers Grokbot and Dot connection service (optional HTTPS service).")
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="write a private starter configuration; does not deploy or contact agents")
     init.add_argument("--directory", required=True)
     init.add_argument("--public-url", required=True)
-    for name in ("doctor", "serve", "revoke"):
-        p = sub.add_parser(name)
+    for name, help_text in (("doctor", "check private service configuration without contacting agents"),
+                            ("serve", "run the connection service behind your HTTPS endpoint"),
+                            ("revoke", "remove one peer's OAuth grants and subscription")):
+        p = sub.add_parser(name, help=help_text)
         p.add_argument("--config", required=True)
         if name == "serve":
             p.add_argument("--port", type=int, default=8766)

@@ -1,7 +1,7 @@
 {
   "name": "agentpeers",
   "version": "0.7.0",
-  "description": "Let your Codex and Claude Code sessions talk to each other.",
+  "description": "The AgentPeers local connection: Codex ↔ Claude Code sessions.",
   "license": "MIT",
   "mcpServers": {
     "agentpeers": {

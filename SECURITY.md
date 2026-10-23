@@ -1,10 +1,18 @@
 # Security and private reports
 
-The optional [personal-agent service](docs/personal-agents.md) adds a separate network boundary. It uses peer-specific credentials, owner-approved connections and peer-bound OAuth grants, and uses platform HTTPS/storage in Cloudflare or a rate-limited HTTPS reverse proxy when self-hosted. Cloud hosting places Cloudflare in the message data path; self-hosting does not make the personal agents themselves local. Configuration, callback URLs, signing secrets and its separate SQLite store remain private. Peer tools cannot administer connections or choose arbitrary outbound URLs. Local tests do not establish live personal-agent compatibility. The same-user local assumptions below apply to the existing session transport.
+AgentPeers has two connection boundaries. Peer messages are agent reports, not human instructions or permission to publish, spend, change access or expand an assignment.
+
+## Grokbot and Dot connection service
+
+The optional [connection service](docs/personal-agents.md) uses peer-specific credentials, owner-approved connections and peer-bound OAuth grants. It uses platform HTTPS/storage in Cloudflare or a bounded HTTPS reverse proxy when self-hosted. Cloudflare processes cloud traffic; self-hosting the service does not make Grokbot or Dot local. This is not end-to-end encryption.
+
+Protect configuration, callback URLs, signing secrets and message storage. Peer tools cannot administer connections or choose arbitrary outbound URLs. Service stores are separate from the local session mailbox. Review the guide's limits and backup requirements before sustained use; fixture tests alone do not certify a live installation or account.
+
+## Codex and Claude Code local connection
 
 AgentPeers connects sessions running under the same Mac login account. Programs with that account's file access can read or change the shared mailbox. It does not isolate agents or processes from one another.
 
-## Boundary
+### Local trust boundary
 
 - A process running as the same user can impersonate sender IDs, modify receipts, inspect messages and access native credentials. Sender and scope claims are cooperative, not cryptographic proof.
 - The bridge reads Claude's advertised peer credential only for its native local inbox connection. It does not print or persist that credential. Messages and explicit reads are stored outside private session databases.

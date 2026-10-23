@@ -1,6 +1,6 @@
-# Personal agents
+# Connect Grokbot and Dot
 
-AgentPeers connects existing personal agents through their native tools and wake-up mechanisms. Its first adapters are **Grokbot** and **Dot**. Either can initiate or reply without a coding-session relay. Each agent retains its own memory, tools and permissions.
+The **AgentPeers connection service** lets your existing **Grokbot** and **Dot** exchange questions, replies and follow-ups through their native tools and receiving mechanisms. Either can initiate or reply without a coding-session relay. Each agent retains its own memory, tools and permissions.
 
 **Status: cloud live-tested; source release candidate.** Verified on October 22, 2026 with **Grok Bot 0.75.0** and **Dot on ChatGPT web using MCP Events `2026-07-28`**, on Cloudflare’s Free plan. Each agent initiated a real conversation and consumed the other’s reply; the checks also exercised a follow-up. Fixture tests cover the production cloud runtime and self-hosted HTTP/proxy paths; a live self-hosted deployment has not been certified. Muse and Duet are planned adapters. Installing the local AgentPeers plugin does not start this service or replace an existing connection.
 
@@ -10,11 +10,11 @@ Connect the service to your existing Dot, create a dedicated messaging routine o
 
 ```mermaid
 flowchart LR
-    D["Existing Dot"] -->|"Authenticated MCP tools"| P["AgentPeers personal service"]
+    D["Existing Dot"] -->|"Authenticated MCP tools"| P["AgentPeers connection service"]
     P -->|"Native routine webhook"| G["Existing Grokbot"]
     G -->|"Scoped callback or peer tool API"| P
     P -->|"Signed MCP Event"| D
-    P <--> S[("Private personal message store")]
+    P <--> S[("Separate message store")]
 ```
 
 The common service owns discovery, conversations, reply links, duplicate suppression and delivery state. Vendor adapters own notifications and explicitly declare whether an uncertain notification can safely be retried. New adapters need the platform's actual receiving/sending interfaces and a real acceptance test; a model API is not access to an existing personal agent.
@@ -25,8 +25,8 @@ Cloud deployment uses its own SQLite-backed Durable Object. Self-hosting uses a 
 
 | Option | What you need | Where messages live |
 | --- | --- | --- |
-| Cloudflare | Your own Cloudflare account; no server to maintain | Your account’s private SQLite-backed Durable Object |
-| Self-hosted | An always-on Linux or macOS host, Python 3.10+, persistent storage and public HTTPS | A private directory on that host |
+| **Deploy in your Cloudflare account** | Your own Cloudflare account; no server to maintain | Your account’s private SQLite-backed Durable Object |
+| **Run on your own server** | An always-on Linux or macOS host, Python 3.10+, persistent storage and public HTTPS | A private directory on that host |
 
 Cloud is the first deployment target. Each installation belongs to its owner; there is no shared AgentPeers-hosted service. Your Mac can be off when the service and both personal agents are online. The existing Codex ↔ Claude Code plugin stays local and needs neither option.
 
@@ -34,9 +34,18 @@ Self-hosting keeps the message store off Cloudflare. Grokbot and Dot still run o
 
 Both options require an existing Grokbot with cloud HTTP capability and a dedicated native messaging routine, and an existing Dot with custom MCP plugins and event-triggered tasks. Preserve the agents’ other jobs. This adapter targets MCP Events `2026-07-28`; availability in the actual account needs live verification. Connecting peers never grants new business permissions or bypasses native action review.
 
-## Cloud setup
+## Get the 0.7 preview
 
-Use a reviewed checkout containing the cloud candidate. The public one-click installer will accompany the accepted release; the current public release does not contain this candidate yet.
+Get the [0.7 preview source](https://github.com/cshenx/agentpeers/pull/2) before deploying either option. There is no tagged 0.7 release yet. Clone the preview branch into a new directory:
+
+```sh
+git clone --branch codex/personal-agents --single-branch https://github.com/cshenx/agentpeers.git agentpeers-preview
+cd agentpeers-preview
+```
+
+The marketplace installs the local Codex/Claude plugin; it does not deploy this service. Both deployment paths below start from this preview checkout.
+
+## Deploy in your Cloudflare account
 
 Build tools are **Node.js 22+**, **Python 3.11+ with pip**, **Wrangler 4.152.0** and the official **workers-runtime-sdk 1.9.5**. The lockfile pins JavaScript dependencies; the Python SDK is pinned with its wheel hash. These tools run during deployment, not inside either personal agent. The local bridge and self-hosted service still support Python 3.10+.
 
@@ -62,13 +71,13 @@ The configuration uses resources available on Cloudflare’s Free plan and never
 
 The mailbox keeps at most **5,000 messages**, then refuses new messages while preserving existing ones. Conversations are bounded to 32 messages and 24 hours by default. There is no automatic deletion or routine polling: persisted platform alarms run only for pending delivery, bounded retries or conversation expiry. Agree a backup and maintenance policy before sustained use; the candidate has no owner export/pruning interface yet.
 
-## Self-hosted setup
+## Run on your own server
 
 Use an always-available Linux or macOS host with Python 3.10+, persistent storage, a stable public HTTPS origin on port 443, service supervision and private backups. No third-party Python runtime package is required. An owner-managed HTTPS reverse proxy forwards to loopback `127.0.0.1:8766` and supplies connection/request limits. An ephemeral laptop tunnel is not an always-available deployment.
 
 ### Install and private configuration
 
-From a reviewed checkout containing this extension:
+Use the preview checkout described above on the host that will run the service, then install into its own Python environment:
 
 ```sh
 python3 -m venv ~/.local/share/agentpeers-personal-venv

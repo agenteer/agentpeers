@@ -1,52 +1,44 @@
 # AgentPeers
 
-**Let your Codex and Claude Code sessions talk to each other.**
+**Let your AI agents talk across platforms.**
 
-Use Codex and Claude Code together without copying messages between them. Ask either agent to find the other session, ask questions, share findings and coordinate work.
+Ask one agent to consult another, share a finding or get a second opinion—without copying messages between them. AgentPeers connects agents you already use through their native interfaces, so each keeps its own tools, context and permissions.
 
-Connect **Codex in a terminal or the Codex desktop app** with **Claude Code in a terminal**, on the same Mac.
+## Choose your connection
 
-AgentPeers also connects **Grokbot ↔ Dot** through an optional service in your own Cloudflare account or on your own host. The cloud connection has been live-tested in both directions; this extension remains a release candidate. **Muse and Duet are planned**. See [personal-agent setup and tested versions](docs/personal-agents.md). The local installation below starts no cloud service.
+| Connection | What you install | Start here |
+| --- | --- | --- |
+| **Codex ↔ Claude Code** | A plugin in both clients on the same Mac. No AgentPeers server required. | [Connect coding sessions](#connect-codex-and-claude-code) |
+| **Grokbot ↔ Dot** · 0.7 preview | A connection service in your Cloudflare account or on your own server, connected to your existing agents. | [Set up Grokbot and Dot](docs/personal-agents.md) |
 
-**macOS · Python 3.10+ · Both clients use the same Mac login account**
+Each connection has its own setup, peer discovery and message store. The marketplace plugin installs the local Codex ↔ Claude Code connection; the Grokbot ↔ Dot preview is deployed separately from the [0.7 candidate](https://github.com/cshenx/agentpeers/pull/2).
 
-[Tested connections](#tested-connections) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Delivery and limits](#delivery-and-limits) · [Security](SECURITY.md)
+[Examples](#what-you-can-do) · [Setup](#connect-codex-and-claude-code) · [Architecture](#how-it-works) · [Tested versions](#tested-codex-and-claude-code-connections) · [Security](SECURITY.md)
 
-## What it feels like
+## What you can do
 
-Tell Codex:
+**Get another coding agent's input.** Tell Codex:
 
 > Find the Claude session working on the API and ask whether its schema covers the new field.
 
-Tell Claude:
+**Continue research with your other personal agent.** Tell Grokbot:
 
-> Find the Codex session reviewing the frontend and send it the API change.
+> Send Dot the findings from our research and ask which point needs a closer look. Answer its follow-up.
 
-The agents find each other and exchange messages through tools in their existing sessions. You keep working in your usual clients, without relaying messages yourself or creating a connection for each pair. Give sessions distinct names so the agent can identify the right one.
+The agents exchange questions and replies in their existing clients. You keep working where you normally do. Use each platform's native messaging for its own peers; AgentPeers extends that experience across the supported pairs. Messages from another agent carry no additional human permission.
 
-Use each runtime's native messaging for its own peers; agentpeers extends that workflow across Codex and Claude Code. Peer messages do not grant additional permission beyond the work you authorized.
+<a id="quick-start"></a>
 
-## Tested connections
-
-| Codex side | Claude side | What was verified |
-| --- | --- | --- |
-| Codex CLI **0.163.0**, in a terminal | Claude Code **2.1.303**, in a terminal | Questions and replies in both directions; checked October 19, 2026. |
-| Codex desktop app **26.1007.30912** | Claude Code **2.1.296**, in a terminal | Questions and replies in both directions. Receiving requires a loaded Codex chat. |
-| Codex desktop app **26.1013.40934** | Claude Code **2.1.304**, in a terminal | An unloaded chat was opened by desktop wake, consumed the peer message and returned its exact nonce; checked October 20, 2026. |
-| Codex terminal or desktop app | Claude Code in the Claude desktop app | Not yet verified with agentpeers. |
-
-Run the setup check after installation or client updates to confirm that messages and replies reach both sessions. The Claude desktop entry refers to Claude Code in the app's Code tab; ordinary Claude Chat and Cowork conversations are not supported connections.
-
-## Quick start
+## Connect Codex and Claude Code
 
 ### 1. Check requirements
 
 - macOS; run both clients under the same Mac login account. The connection uses local files and sockets protected by that account's permissions.
 - Python **3.10+**, available as `python3` to both clients.
 - Codex CLI available as `codex`. Terminal receiving also requires its native shared local server.
-- Claude Code with [native cross-session messaging](https://code.claude.com/docs/en/cross-session-messaging) and a live inbox. See the tested versions above.
+- Claude Code with [native cross-session messaging](https://code.claude.com/docs/en/cross-session-messaging) and a live inbox. See the [tested versions](#tested-codex-and-claude-code-connections).
 
-There are no third-party Python runtime dependencies, new API keys or agentpeers background services. Your normal agent subscriptions and usage limits apply; waking an idle agent can consume usage. agentpeers is an independent project, unaffiliated with OpenAI or Anthropic.
+There are no third-party Python runtime dependencies, new API keys or AgentPeers background services. Your normal agent subscriptions and usage limits apply; waking an idle agent can consume usage. AgentPeers is an independent project, unaffiliated with OpenAI or Anthropic.
 
 ### 2. Install the plugin in both clients
 
@@ -86,23 +78,35 @@ Both clients share this setting through the message-store directory. On a send t
 
 Open Claude Code normally in another terminal. Reload plugins or start fresh sessions after installation; Claude supports `/reload-plugins --force`.
 
-A Codex terminal opened before the shared server may use an embedded server. Finish its active work, then exit and resume normally against the shared server. Do not use `--no-daemon` for a session that needs to receive. agentpeers never restarts the server or takes a desktop-owned chat into a terminal. Desktop wake uses the app itself, only after explicit opt-in.
+A Codex terminal opened before the shared server may use an embedded server. Finish its active work, then exit and resume normally against the shared server. Do not use `--no-daemon` for a session that needs to receive. AgentPeers never restarts the server or takes a desktop-owned chat into a terminal. Desktop wake uses the app itself, only after explicit opt-in.
 
 ### 4. Verify a real exchange
 
-In either client, ask **“Set up agentpeers and test it with [the other session's name].”** Claude also exposes `/agentpeers:setup`.
+In either client, ask **“Set up AgentPeers and test it with [the other session's name].”** Claude also exposes `/agentpeers:setup`.
 
 Setup checks the environment, sends one unique challenge, waits for the peer to read and reply, then verifies that the originating session read the exact reply. Success is **`round_trip_verified`**. Installation, a saved message or a successful socket write alone does not prove delivery.
 
 Then ask either agent to find and message the other. You can also ask it to inspect its inbox or check a message's status.
 
+## Connect Grokbot and Dot
+
+The **0.7 preview** connects your existing Grokbot and Dot through an AgentPeers connection service. Either agent can initiate a conversation, reply and ask a useful follow-up without a coding session relaying messages.
+
+Choose **Deploy in your Cloudflare account** or **Run on your own server**. The service has its own message storage and credentials; this path does not require the Codex/Claude plugins. Follow the [Grokbot ↔ Dot setup guide](docs/personal-agents.md) for the preview source, requirements, connection steps and live-tested versions.
+
+The cloud connection has been verified with real conversations in both directions. Self-hosted HTTP and proxy paths have fixture coverage; a live public self-hosted installation has not been certified.
+
 ## How it works
+
+AgentPeers has two separate connections. Their adapters use the receiving interfaces of the existing agents, with explicit destinations and replies. Neither reads or edits an agent's private conversation database.
+
+### Local coding sessions
 
 ```mermaid
 flowchart TB
     C["Codex terminal / Codex desktop chat"]
     A["Claude Code terminal"]
-    P["agentpeers MCP<br/>one copy per client"]
+    P["AgentPeers local MCP<br/>one copy per client"]
     D[("External SQLite mailbox<br/>messages and read receipts")]
     C -->|"stdio tools"| P
     A -->|"stdio tools"| P
@@ -111,14 +115,14 @@ flowchart TB
     P <-->|"save and inspect"| D
 ```
 
-Each plugin runs a bundled stdio MCP server. Codex terminal delivery uses the [documented app-server interface](https://developers.openai.com/codex/app-server/), delivering peer content as tool output. Claude Code in a terminal receives its native cross-session envelope. Codex desktop delivery uses the app's internal local messaging interface. The tested versions and receiving requirements are listed above.
+Each plugin runs a bundled stdio MCP server. Codex terminal delivery uses the [documented app-server interface](https://developers.openai.com/codex/app-server/), delivering peer content as tool output. Claude Code in a terminal receives its native cross-session envelope. Codex desktop delivery uses the app's internal local messaging interface. See the [tested versions and receiving requirements](#tested-codex-and-claude-code-connections).
 
 The bridge does not read or edit either agent's private conversation database. Its external SQLite store records messages, reply links and explicit read receipts; it does not automatically deliver saved messages later.
 
 ```mermaid
 sequenceDiagram
     participant C as Codex
-    participant P as agentpeers
+    participant P as AgentPeers
     participant A as Claude Code
     C->>P: Send within human-authorized scope
     P->>A: Submit through native inbox
@@ -130,24 +134,50 @@ sequenceDiagram
     Note over C,A: Each message has its own read receipt
 ```
 
-## Delivery and limits
+### Grokbot and Dot
+
+```mermaid
+flowchart LR
+    G["Your existing Grokbot"] <-->|"Native routine and scoped callbacks"| S["AgentPeers connection service<br/>your Cloudflare account or server"]
+    D["Your existing Dot"] <-->|"Authenticated MCP tools and native events"| S
+    S <--> M[("Separate message store")]
+```
+
+The service handles discovery, conversations and notifications for this connection. Each agent retains its own tools and permissions. Cloudflare and the receiving platform process cloud traffic; self-hosting moves the connection service and its store onto your server, while Grokbot and Dot still run with their providers. See the [service guide](docs/personal-agents.md) for storage, recovery and security limits.
+
+<a id="tested-connections"></a>
+
+## Tested Codex and Claude Code connections
+
+| Codex side | Claude side | What was verified |
+| --- | --- | --- |
+| Codex CLI **0.163.0**, in a terminal | Claude Code **2.1.303**, in a terminal | Questions and replies in both directions; checked October 19, 2026. |
+| Codex desktop app **26.1007.30912** | Claude Code **2.1.296**, in a terminal | Questions and replies in both directions. Receiving requires a loaded Codex chat. |
+| Codex desktop app **26.1013.40934** | Claude Code **2.1.304**, in a terminal | An unloaded chat was opened by desktop wake, consumed the peer message and returned its exact nonce; checked October 20, 2026. |
+| Codex terminal or desktop app | Claude Code in the Claude desktop app | Not yet verified with AgentPeers. |
+
+Run the setup check after installation or client updates to confirm that messages and replies reach both sessions. The Claude desktop entry refers to Claude Code in the app's Code tab; ordinary Claude Chat and Cowork conversations are not supported connections.
+
+<a id="delivery-and-limits"></a>
+
+## Local delivery and limits
 
 | Result | Meaning |
 | --- | --- |
 | `submitted` | Native transport accepted a submission or completed its socket write. The agent may not have read it; native controls may still hold or refuse it. |
 | `read` | The recipient explicitly acknowledged or replied after consuming the message. This proves receipt, not completion of the requested work. |
 | `unavailable` | Automatic delivery did not submit the message. A saved recipient mailbox may still be available for deliberate collection. |
-| `unconfirmed` | Submission may have happened. Check receipts before deciding on another send; agentpeers never automatically replays it. |
+| `unconfirmed` | Submission may have happened. Check receipts before deciding on another send; AgentPeers never automatically replays it. |
 
 - **Busy agents:** messages follow native handling at a model/tool boundary. Running tools are not interrupted. A compatible idle receiver can start a turn.
 - **Closed or unloaded sessions:** there is no offline delivery queue or background retry. An exited Claude session cannot receive. With desktop wake enabled, AgentPeers can open an unloaded local Codex desktop chat during a new send; it does not replay previously saved messages.
 - **Codex desktop:** desktop wake is off by default. When enabled, opening the destination must establish a compatible receiver before any message is submitted. A timeout, unsupported receiver or failed app link leaves the message unavailable; an uncertain submission is never automatically retried. Completely quitting and relaunching the app is not covered by this wake test.
 - **Reply routes:** a sender receives a warning if its return route is missing or unverified. A warning is not delivery proof; an active caller may need to collect the saved reply from its mailbox.
-- **Other machines:** native cross-machine transport is not implemented. Do not sync the SQLite store or expose native sockets to a network.
+- **Other machines:** cross-machine transport for the local Codex ↔ Claude Code connection is not implemented. Do not sync the SQLite store or expose native sockets to a network.
 
 A failed handoff never transfers ownership of another agent's work. Peer messages cannot approve prompts, publishing, spending, access changes or new assignments on your behalf. See [SECURITY.md](SECURITY.md) for the cooperative same-user trust boundary.
 
-## Names, messages and receipts
+## Local session names, messages and receipts
 
 Use distinct native session names (`/rename reviewer`, for example). A unique exact name can follow a deliberately named replacement session; exact `runtime:UUID` addresses stay pinned. Receipts retain the actual session and first-reader identity. Reusing a name intentionally gives its replacement access to that name's external conversation, not private agent history.
 
@@ -166,7 +196,7 @@ MCP accepts strings directly. CLI file/stdin input preserves quotes, newlines an
 
 `expects` can be `none`, `ack` or `reply`; replies default to `none` to avoid courtesy loops. Acknowledgments update the shared receipt without waking the sender. Optional summaries, record references and decision IDs help correlate work but never establish human permission. An explicitly assigned exact-ID worker can ask its original dispatcher one blocking question. See `./bin/agentpeers --help` and the bundled messaging skill for the complete tool workflow.
 
-## Storage and upgrades
+## Local storage and upgrades
 
 Fresh installs store messages in `~/.local/state/agentpeers/messages.sqlite3`. The store is private to your OS user, unencrypted and retained until you deliberately remove it. Set `AGENTPEERS_HOME` to the same private directory in both clients to choose another location.
 
@@ -181,7 +211,7 @@ claude plugin uninstall agentpeers@agenteer-public --scope user
 
 Uninstall leaves messages intact. Earlier installations from this repository's standalone catalog (`agentpeers@agentpeers`) continue to work. When switching catalogs or migrating from Peerbridge, verify the new plugin first, then disable the previous installation through its owning client. Keep its files until active sessions have reloaded; uninstall it afterward. Avoid leaving duplicate messaging servers enabled.
 
-## Troubleshooting
+## Local troubleshooting
 
 - **Tools or arguments remain stale after reload:** use a fresh normal session or exit/resume after finishing active work. Repeated reconnects may leave conversation-cached schemas unchanged; do not add a duplicate manual MCP server.
 - **The shared server runs but the destination is absent:** the terminal may be embedded rather than attached. Setup checks the actual caller when its identity is available. On Codex 0.162.1, one tested inline reasoning override selected an embedded server; removing that optional override restored attachment. Check your current version instead of assuming all overrides behave alike.
@@ -197,7 +227,9 @@ python3 scripts/package.py
 
 Tests use temporary stores and fixture sockets. The packager exports tracked files from the exact commit, excluding working-directory proof and message stores. CI is configured for macOS on Python 3.10 and 3.13; a CI result is separate from live delivery evidence. Before claiming compatibility, verify an actual request, reply and both read receipts on the client versions concerned.
 
-For a standalone command, install the source in an isolated Python environment with `python3 -m pip install .`. Building uses setuptools; the bundled plugin launcher itself needs only Python's standard library. This release contains the local Codex and Claude Code adapters.
+For a standalone command, install the source in an isolated Python environment with `python3 -m pip install .`. Building uses setuptools; the bundled plugin launcher itself needs only Python's standard library. The package includes the local session bridge and the optional self-hosted connection service. Cloud deployment uses the separate build tools listed in the [Grokbot ↔ Dot guide](docs/personal-agents.md).
+
+New platform adapters are welcome. Muse and Duet are planned, not implemented; contributions must use an existing agent's native interfaces and demonstrate actual message consumption and replies. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Report bugs through [GitHub issues](https://github.com/cshenx/agentpeers/issues), with versions and redacted status. Keep credentials, transcripts, private paths and message stores out of issues. For sensitive reports, follow [SECURITY.md](SECURITY.md). See [CONTRIBUTING.md](CONTRIBUTING.md) and [CHANGELOG.md](CHANGELOG.md) for development and release guidance.
 
