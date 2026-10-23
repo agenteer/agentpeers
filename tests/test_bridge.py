@@ -233,6 +233,36 @@ class NativeContracts(unittest.TestCase):
         self.assertIn("setup", {t["name"] for t in results[1]["result"]["tools"]})
         self.assertTrue(results[2]["result"]["isError"])
 
+    def test_missing_or_invalid_scope_fails_before_mailbox_or_transport(self):
+        with patch("agentpeers.mcp.Bridge") as bridge, \
+             patch("agentpeers.mcp.resolve_actor") as actor, \
+             patch.object(native, "send_codex") as send:
+            for scope in (None, "", "   ", False, []):
+                args = {"to": C, "message": "Fixture peer message"}
+                if scope is not None:
+                    args["scope"] = scope
+                with self.subTest(scope=scope), self.assertRaisesRegex(ValueError, "input error, not a receiver failure"):
+                    dispatch("send_message", args, A)
+            bridge.assert_not_called()
+            actor.assert_not_called()
+            send.assert_not_called()
+
+    def test_mcp_missing_scope_is_actionable_and_server_stays_alive(self):
+        requests = [{"id": 1, "method": "tools/call", "params": {
+            "name": "send_message", "arguments": {"to": C, "message": "Fixture peer message"}}},
+            {"id": 2, "method": "ping"}]
+        output = io.StringIO()
+        with patch("sys.stdin", io.StringIO("\n".join(map(json.dumps, requests)))), \
+             patch("sys.stdout", output), patch("agentpeers.mcp.Bridge") as bridge:
+            serve(A)
+        failure, pong = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertTrue(failure["result"]["isError"])
+        error = failure["result"]["content"][0]["text"]
+        self.assertIn("work authorized by the human", error)
+        self.assertIn("No message created or submitted", error)
+        self.assertEqual(pong, {"jsonrpc": "2.0", "id": 2, "result": {}})
+        bridge.assert_not_called()
+
     def test_oversized_mcp_request_does_not_kill_server(self):
         output = io.StringIO()
         stream = "x" * 300_000 + "\n" + json.dumps({"id": 9, "method": "ping"}) + "\n"
