@@ -1,9 +1,9 @@
 ---
 name: setup
-description: Set up the AgentPeers local Codex and Claude Code connection after plugin installation, diagnose local dependencies and verify a real Codex and Claude Code message exchange.
+description: Set up the AgentPeers local Claude Code and Codex connection after plugin installation, diagnose local dependencies and verify a real Claude Code and Codex message exchange.
 ---
 
-First identify the requested connection. This skill sets up local Codex ↔ Claude Code sessions. For Grokbot ↔ Dot, use `docs/personal-agents.md` in the source repository instead; the local setup probe does not configure or test that service.
+First identify the requested connection. This skill sets up local Claude Code ↔ Codex sessions. For Grokbot ↔ Dot, use `docs/personal-agents.md` in the source repository instead; the local setup probe does not configure or test that service.
 
 Use the AgentPeers `setup` MCP tool without arguments first. It checks local dependencies and registrations without sending messages or editing configuration. If tools have not loaded, run the bundled `bin/agentpeers doctor` from this installed plugin; reconnect the MCP client or start a new session if necessary. Python 3.10+ and macOS are required. If Python is missing, the launcher prints the requirement before importing anything. Do not install dependencies or alter permissions silently.
 

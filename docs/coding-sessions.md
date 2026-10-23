@@ -1,4 +1,4 @@
-# Connect Codex and Claude Code
+# Connect Claude Code and Codex
 
 Ask one coding agent to consult the other, then get its answer back in the conversation you are already using. This guide sets up the local AgentPeers plugin on one Mac. For personal agents, use [Connect Grokbot and Dot](personal-agents.md).
 
@@ -9,7 +9,7 @@ Ask one coding agent to consult the other, then get its answer back in the conve
 - macOS; run both clients under the same Mac login account. The connection uses local files and sockets protected by that account's permissions.
 - Python **3.10+**, available as `python3` to both clients.
 - Codex CLI available as `codex`. Terminal receiving also requires its native shared local server.
-- Claude Code with [native cross-session messaging](https://code.claude.com/docs/en/cross-session-messaging) and a live inbox. See the [tested versions](#tested-codex-and-claude-code-connections).
+- Claude Code with [native cross-session messaging](https://code.claude.com/docs/en/cross-session-messaging) and a live inbox. See the [tested versions](#tested-claude-code-and-codex-connections).
 
 There are no third-party Python runtime dependencies, new API keys or AgentPeers background services. Your normal agent subscriptions and usage limits apply; waking an idle agent can consume usage. AgentPeers is an independent project, unaffiliated with OpenAI or Anthropic.
 
@@ -18,9 +18,9 @@ There are no third-party Python runtime dependencies, new API keys or AgentPeers
 Run in a terminal:
 
 ```sh
+claude plugin install agentpeers --marketplace https://github.com/cshenx/marketplace.git --scope user
 codex plugin marketplace add https://github.com/cshenx/marketplace.git
 codex plugin add agentpeers@agenteer-public
-claude plugin install agentpeers --marketplace https://github.com/cshenx/marketplace.git --scope user
 ```
 
 The combined Claude installation command requires 2.1.292+. Alternatively:
@@ -63,14 +63,16 @@ Then ask either agent to find and message the other. You can also ask it to insp
 
 <a id="tested-connections"></a>
 
-## Tested Codex and Claude Code connections
+<a id="tested-codex-and-claude-code-connections"></a>
 
-| Codex side | Claude side | What was verified |
+## Tested Claude Code and Codex connections
+
+| Claude side | Codex side | What was verified |
 | --- | --- | --- |
-| Codex CLI **0.163.0**, in a terminal | Claude Code **2.1.303**, in a terminal | Questions and replies in both directions; checked October 19, 2026. |
-| Codex desktop app **26.1007.30912** | Claude Code **2.1.296**, in a terminal | Questions and replies in both directions. Receiving requires a loaded Codex chat. |
-| Codex desktop app **26.1013.40934** | Claude Code **2.1.304**, in a terminal | An unloaded chat was opened by desktop wake, consumed the peer message and returned its exact nonce; checked October 20, 2026. |
-| Codex terminal or desktop app | Claude Code in the Claude desktop app | Not yet verified with AgentPeers. |
+| Claude Code **2.1.303**, in a terminal | Codex CLI **0.163.0**, in a terminal | Questions and replies in both directions; checked October 19, 2026. |
+| Claude Code **2.1.296**, in a terminal | Codex desktop app **26.1007.30912** | Questions and replies in both directions. Receiving requires a loaded Codex chat. |
+| Claude Code **2.1.304**, in a terminal | Codex desktop app **26.1013.40934** | An unloaded chat was opened by desktop wake, consumed the peer message and returned its exact nonce; checked October 20, 2026. |
+| Claude Code in the Claude desktop app | Codex terminal or desktop app | Not yet verified with AgentPeers. |
 
 Run the setup check after installation or client updates to confirm that messages and replies reach both sessions. The Claude desktop entry refers to Claude Code in the app's Code tab; ordinary Claude Chat and Cowork conversations are not supported connections.
 
@@ -89,7 +91,7 @@ Run the setup check after installation or client updates to confirm that message
 - **Closed or unloaded sessions:** there is no offline delivery queue or background retry. An exited Claude session cannot receive. With desktop wake enabled, AgentPeers can open an unloaded local Codex desktop chat during a new send; it does not replay previously saved messages.
 - **Codex desktop:** desktop wake is off by default. When enabled, opening the destination must establish a compatible receiver before any message is submitted. A timeout, unsupported receiver or failed app link leaves the message unavailable; an uncertain submission is never automatically retried. Completely quitting and relaunching the app is not covered by this wake test.
 - **Reply routes:** a sender receives a warning if its return route is missing or unverified. A warning is not delivery proof; an active caller may need to collect the saved reply from its mailbox.
-- **Other machines:** cross-machine transport for the local Codex ↔ Claude Code connection is not implemented. Do not sync the SQLite store or expose native sockets to a network.
+- **Other machines:** cross-machine transport for the local Claude Code ↔ Codex connection is not implemented. Do not sync the SQLite store or expose native sockets to a network.
 
 A failed handoff never transfers ownership of another agent's work. Peer messages cannot approve prompts, publishing, spending, access changes or new assignments on your behalf. See [SECURITY.md](../SECURITY.md) for the cooperative same-user trust boundary.
 

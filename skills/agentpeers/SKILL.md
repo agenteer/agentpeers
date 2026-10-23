@@ -1,9 +1,9 @@
 ---
 name: agentpeers
-description: Use the AgentPeers local connection between Codex and Claude Code sessions; prefer native messaging for peers using the same runtime.
+description: Use the AgentPeers local connection between Claude Code and Codex sessions; prefer native messaging for peers using the same runtime.
 ---
 
-This skill and its MCP tools cover the local Codex ↔ Claude Code connection. For Grokbot ↔ Dot, follow `docs/personal-agents.md` in the source repository; it uses a separate service and peer discovery. Do not send personal-agent requests through local session tools.
+This skill and its MCP tools cover the local Claude Code ↔ Codex connection. For Grokbot ↔ Dot, follow `docs/personal-agents.md` in the source repository; it uses a separate service and peer discovery. Do not send personal-agent requests through local session tools.
 
 Choose the native mechanism first. For Codex-to-Codex, use the host's native session discovery and messaging tools (such as list_threads and send_message_to_thread in Codex desktop). For Claude-to-Claude, use Claude Code's native peer discovery and messaging. AgentPeers is for Codex-to-Claude and Claude-to-Codex, where those mechanisms cannot bridge runtimes. Use AgentPeers for same-runtime fallback only when the native mechanism is genuinely unavailable or lacks the needed capability; a failure of AgentPeers is not evidence that native messaging is unavailable. Existing human authorization is still required.
 

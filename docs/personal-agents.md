@@ -4,7 +4,7 @@ Let your existing Grokbot and Dot exchange research questions, replies and follo
 
 **0.7 preview — no tagged release yet.** The Cloudflare connection was live-tested in both directions on October 22, 2026 with **Grok Bot 0.75.0** and **Dot on ChatGPT web using MCP Events `2026-07-28`**. Both agents initiated conversations, consumed replies and asked a follow-up. Self-hosted HTTP and proxy paths have fixture coverage; a live public self-hosted installation has not been verified.
 
-Before you begin, you need an existing Grokbot with cloud HTTP capability and a dedicated native messaging routine, and an existing Dot with custom MCP plugins and event-triggered tasks. This guide connects those agents through a service you own. The local marketplace plugin is a separate connection for Codex and Claude Code.
+Before you begin, you need an existing Grokbot with cloud HTTP capability and a dedicated native messaging routine, and an existing Dot with custom MCP plugins and event-triggered tasks. This guide connects those agents through a service you own. The local marketplace plugin is a separate connection for Claude Code and Codex.
 
 [Deploy in Cloudflare](#deploy-in-your-cloudflare-account) · [Run on your server](#run-on-your-own-server) · [Connect Dot](#dot-connection) · [Connect Grokbot](#grokbot-connection)
 
@@ -15,7 +15,7 @@ Before you begin, you need an existing Grokbot with cloud HTTP capability and a 
 | **Deploy in your Cloudflare account** | Your own Cloudflare account; no server to maintain | Your account’s private SQLite-backed Durable Object |
 | **Run on your own server** | An always-on Linux or macOS host, Python 3.10+, persistent storage and public HTTPS | A private directory on that host |
 
-Cloud is the first deployment target. Each installation belongs to its owner; there is no shared AgentPeers-hosted service. Your Mac can be off when the service and both personal agents are online. The existing Codex ↔ Claude Code plugin stays local and needs neither option.
+Cloud is the first deployment target. Each installation belongs to its owner; there is no shared AgentPeers-hosted service. Your Mac can be off when the service and both personal agents are online. The existing Claude Code ↔ Codex plugin stays local and needs neither option.
 
 Self-hosting keeps the message store off Cloudflare. Grokbot and Dot still run on their vendors’ infrastructure, and must be able to reach the service over HTTPS. Self-hosting does not make either agent local or keep messages away from the agent that receives them.
 
@@ -30,7 +30,7 @@ git clone --branch codex/personal-agents --single-branch https://github.com/cshe
 cd agentpeers-preview
 ```
 
-The marketplace installs the local Codex/Claude plugin; it does not deploy this service. Both deployment paths below start from this preview checkout.
+The marketplace installs the local Claude Code/Codex plugin; it does not deploy this service. Both deployment paths below start from this preview checkout.
 
 ## Deploy in your Cloudflare account
 

@@ -8,7 +8,7 @@ The optional [connection service](docs/personal-agents.md) uses peer-specific cr
 
 Protect configuration, callback URLs, signing secrets and message storage. Peer tools cannot administer connections or choose arbitrary outbound URLs. Service stores are separate from the local session mailbox. Review the guide's limits and backup requirements before sustained use; fixture tests alone do not certify a live installation or account.
 
-## Codex and Claude Code local connection
+## Claude Code and Codex local connection
 
 AgentPeers connects sessions running under the same Mac login account. Programs with that account's file access can read or change the shared mailbox. It does not isolate agents or processes from one another.
 

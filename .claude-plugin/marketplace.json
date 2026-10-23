@@ -7,7 +7,7 @@
     {
       "name": "agentpeers",
       "source": "./",
-      "description": "The AgentPeers local connection: Codex ↔ Claude Code sessions."
+      "description": "The AgentPeers local connection: Claude Code ↔ Codex sessions."
     }
   ]
 }

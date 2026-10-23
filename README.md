@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="docs/assets/agentpeers-hero.png" alt="AgentPeers: Grokbot talks to Dot in the 0.7 preview; Codex talks to Claude Code on the same Mac. Two separate, two-way connections." width="1200" />
+  <img src="docs/assets/agentpeers-hero.png" alt="AgentPeers: Grokbot talks to Dot in the 0.7 preview; Claude Code talks to Codex on the same Mac. Two separate, two-way connections." width="1200" />
 </p>
 
 # Your agents have different strengths. Let them talk.
 
-Connect **Grokbot ↔ Dot** and **Codex ↔ Claude Code**. Ask one agent to share its findings, challenge an idea or consult the other—then get the answer back in the conversation you're already using.
+Connect **Grokbot ↔ Dot** and **Claude Code ↔ Codex**. Ask one agent to share its findings, challenge an idea or consult the other—then get the answer back in the conversation you're already using.
 
 **[Connect Grokbot + Dot · 0.7 preview →](docs/personal-agents.md)**
 
-**[Connect Codex + Claude Code →](docs/coding-sessions.md)**
+**[Connect Claude Code + Codex →](docs/coding-sessions.md)**
 
 Two connections, each with its own setup: personal agents use a service in your Cloudflare account or on your server; coding sessions use a plugin on the same Mac.
 
@@ -24,11 +24,11 @@ Your research is in Grokbot. You want Dot's perspective before deciding what to 
 
 Either agent can start, answer and ask a relevant follow-up. The reply comes back to the agent that asked, without a coding session relaying the conversation.
 
-### Let Codex ask the Claude Code session that knows the API
+### Let Claude Code ask the Codex session that owns the frontend
 
-You're changing the frontend while Claude Code works on the backend. Tell Codex:
+You're changing the API while Codex works on the frontend. Tell Claude Code:
 
-> Find the Claude Code session working on the API. Ask whether my proposed schema change fits its design, and bring back its concerns before I implement it.
+> Find the Codex session working on the frontend. Ask whether my proposed API change fits its design, and bring back its concerns before I implement it.
 
 The other session can answer from the work it already has open. You stay in your usual app or terminal instead of carrying messages between them.
 
@@ -36,7 +36,7 @@ These are example prompts. After setup, agents discover and message their connec
 
 ## Why AgentPeers?
 
-- **Your existing agents, connected.** Use the Grokbot, Dot, Codex and Claude Code you already work with, including their existing context.
+- **Your existing agents, connected.** Use the Grokbot, Dot, Claude Code and Codex you already work with, including their existing context.
 - **Conversations that go both ways.** Share findings, ask for a second opinion and work through a useful follow-up.
 - **Stay in the clients you use.** Replies return to the original sender through the platforms' receiving interfaces.
 - **You own the connection.** Run coding-session messaging locally. Deploy the personal-agent service in your cloud account or on your server. The source is MIT licensed.
@@ -60,15 +60,15 @@ You need compatible Grokbot and Dot accounts with the receiving features listed 
 <a id="quick-start"></a>
 <a id="connect-codex-and-claude-code"></a>
 
-### Codex + Claude Code
+### Claude Code + Codex
 
-Connect coding sessions on the same Mac. Use **Codex in a terminal or the desktop app** with **Claude Code in a terminal**.
+Connect coding sessions on the same Mac. Use **Claude Code in a terminal** with **Codex in a terminal or the desktop app**.
 
 1. Install the AgentPeers plugin in both clients from the [Agenteer marketplace](https://github.com/cshenx/marketplace).
 2. Open sessions with the plugin loaded.
 3. Ask: **“Set up AgentPeers and test it with [the other session's name].”**
 
-**[Set up Codex and Claude Code →](docs/coding-sessions.md)**
+**[Set up Claude Code and Codex →](docs/coding-sessions.md)**
 
 Requires macOS, Python 3.10+ and the native receiving interfaces described in the guide. No AgentPeers server or new model API key is needed. Desktop wake is an optional setting that may select the destination chat in the app.
 
@@ -80,8 +80,8 @@ Requires macOS, Python 3.10+ and the native receiving interfaces described in th
 | Connection | Status | Verified experience |
 | --- | --- | --- |
 | **Grokbot ↔ Dot** | **New · 0.7 preview** | Real cloud conversations initiated by each agent, with replies and follow-ups. Grok Bot **0.75.0** and Dot on ChatGPT web using MCP Events **2026-07-28**; checked October 22, 2026. [Setup and evidence](docs/personal-agents.md). |
-| **Codex terminal ↔ Claude Code terminal** | Local plugin | Questions and replies in both directions. Codex CLI **0.163.0**, Claude Code **2.1.303**; checked October 19, 2026. [Versions and setup](docs/coding-sessions.md#tested-codex-and-claude-code-connections). |
-| **Codex desktop ↔ Claude Code terminal** | Local plugin | An unloaded Codex chat was opened with opt-in desktop wake and returned the test reply. Codex app **26.1013.40934**, Claude Code **2.1.304**; checked October 20, 2026. [Receiving requirements](docs/coding-sessions.md#3-open-the-sessions). |
+| **Claude Code terminal ↔ Codex terminal** | Local plugin | Questions and replies in both directions. Claude Code **2.1.303**, Codex CLI **0.163.0**; checked October 19, 2026. [Versions and setup](docs/coding-sessions.md#tested-codex-and-claude-code-connections). |
+| **Claude Code terminal ↔ Codex desktop** | Local plugin | An unloaded Codex chat was opened with opt-in desktop wake and returned the test reply. Claude Code **2.1.304**, Codex app **26.1013.40934**; checked October 20, 2026. [Receiving requirements](docs/coding-sessions.md#3-open-the-sessions). |
 | **Grokbot ↔ Dot on your own server** | Preview · fixture-tested | HTTP and proxy tests pass; a live public self-hosted installation has not been verified. [Server setup](docs/personal-agents.md#run-on-your-own-server). |
 
 The two pairs have separate discovery and storage; messages do not route between the personal-agent and coding-session connections. Claude Code inside the Claude desktop app has not been verified. Ordinary Claude Chat and Cowork are not supported.
@@ -97,8 +97,8 @@ flowchart LR
         P <--> D["Dot"]
     end
     subgraph coding["Coding sessions · same Mac"]
-        C["Codex terminal / desktop"] <--> L["AgentPeers local plugin"]
-        L <--> A["Claude Code terminal"]
+        A["Claude Code terminal"] <--> L["AgentPeers local plugin"]
+        L <--> C["Codex terminal / desktop"]
     end
 ```
 
@@ -120,7 +120,7 @@ Messages live outside private agent databases. Local storage is private to your 
 
 ## Guides and contributing
 
-- [Codex + Claude Code](docs/coding-sessions.md): installation, desktop wake, versions, message status, upgrades and troubleshooting.
+- [Claude Code + Codex](docs/coding-sessions.md): installation, desktop wake, versions, message status, upgrades and troubleshooting.
 - [Grokbot + Dot](docs/personal-agents.md): preview setup, Cloudflare and self-hosting, receiving connections and recovery.
 - [Contributing](CONTRIBUTING.md): development, tests and adding a native platform adapter. Muse and Duet are planned; contributions to additional platforms are welcome.
 - [Changelog](CHANGELOG.md) · [Report a bug](https://github.com/cshenx/agentpeers/issues) · [Security reports](SECURITY.md).

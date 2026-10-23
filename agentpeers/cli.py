@@ -13,10 +13,10 @@ def main():
         from .personal.cli import main as personal_main
         return personal_main(sys.argv[2:])
     parser = argparse.ArgumentParser(prog="agentpeers", description="Peer messaging between your existing AI agents across platforms.",
-                                     epilog="Local session commands connect Codex and Claude Code on one Mac. Use agentpeers personal --help for the separate Grokbot and Dot connection service.")
+                                     epilog="Local session commands connect Claude Code and Codex on one Mac. Use agentpeers personal --help for the separate Grokbot and Dot connection service.")
     parser.add_argument("--from", dest="actor", help="own session address; normally inferred")
     sub = parser.add_subparsers(dest="command", required=True)
-    listing = sub.add_parser("list", help="discover local Codex and Claude Code sessions")
+    listing = sub.add_parser("list", help="discover local Claude Code and Codex sessions")
     listing.add_argument("--runtime", choices=["codex", "claude", "all"], default="all")
     sub.add_parser("whoami", help="show this local session identity")
     waking = sub.add_parser("desktop-wake", help="opt in to opening unloaded destination chats in Codex desktop")
@@ -49,7 +49,7 @@ def main():
     for command, help_text in [("ack", "acknowledge consuming a local message"),
                                ("status", "inspect an existing local message")]:
         sub.add_parser(command, help=help_text).add_argument("id")
-    sub.add_parser("mcp", help="run the local Codex and Claude Code MCP server")
+    sub.add_parser("mcp", help="run the local Claude Code and Codex MCP server")
     sub.add_parser("personal", help="configure or serve the separate Grokbot and Dot connection; see personal --help")
     args = parser.parse_args()
     if args.command == "personal":

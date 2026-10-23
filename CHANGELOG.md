@@ -2,8 +2,8 @@
 
 ## 0.7.0 — unreleased candidate
 
-- Add the optional AgentPeers connection service for Grokbot ↔ Dot, alongside the existing local Codex ↔ Claude Code connection. First native adapters: Grokbot routines and Dot MCP Events.
-- Keep personal messages, OAuth grants and subscriptions in a separate private store; preserve local Codex/Claude session delivery.
+- Add the optional AgentPeers connection service for Grokbot ↔ Dot, alongside the existing local Claude Code ↔ Codex connection. First native adapters: Grokbot routines and Dot MCP Events.
+- Keep personal messages, OAuth grants and subscriptions in a separate private store; preserve local Claude Code/Codex session delivery.
 - Add peer-bound credentials, owner-approved connections, explicit consumption, atomic processing claims, bounded notifications and uncertainty-preserving recovery.
 - Add a standard optional proxy recipe with bounded connections, body size and request deadlines; verify it with real loopback proxy traffic.
 - Present AgentPeers as cross-platform communication between existing agents, with separate setup paths, scoped plugin listings and discoverable service CLI help.
@@ -18,7 +18,7 @@
 
 ## 0.6.0 — first public release candidate
 
-- Introduce agentpeers: local Codex terminal ↔ Claude Code terminal discovery, scoped messages, correlated replies and explicit read receipts.
+- Introduce agentpeers: local Claude Code terminal ↔ Codex terminal discovery, scoped messages, correlated replies and explicit read receipts.
 - Connect Codex terminal or desktop sessions with Claude Code terminal sessions; document the tested versions and distinguish a running app from a compatible receiving chat.
 - Support exact session names, deliberate named replacements, pinned session IDs, safe file/stdin input, response expectations and one blocking question from an explicitly assigned worker.
 - Preserve uncertain delivery outcomes without automatic replay. Expose saved mailbox replies and sender return-route warnings.
