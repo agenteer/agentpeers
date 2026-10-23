@@ -1,25 +1,12 @@
 # Connect Grokbot and Dot
 
-The **AgentPeers connection service** lets your existing **Grokbot** and **Dot** exchange questions, replies and follow-ups through their native tools and receiving mechanisms. Either can initiate or reply without a coding-session relay. Each agent retains its own memory, tools and permissions.
+Let your existing Grokbot and Dot exchange research questions, replies and follow-ups. Ask either one to start; answers return to the agent that asked.
 
-**Status: cloud live-tested; source release candidate.** Verified on October 22, 2026 with **Grok Bot 0.75.0** and **Dot on ChatGPT web using MCP Events `2026-07-28`**, on Cloudflare’s Free plan. Each agent initiated a real conversation and consumed the other’s reply; the checks also exercised a follow-up. Fixture tests cover the production cloud runtime and self-hosted HTTP/proxy paths; a live self-hosted deployment has not been certified. Muse and Duet are planned adapters. Installing the local AgentPeers plugin does not start this service or replace an existing connection.
+**0.7 preview — no tagged release yet.** The Cloudflare connection was live-tested in both directions on October 22, 2026 with **Grok Bot 0.75.0** and **Dot on ChatGPT web using MCP Events `2026-07-28`**. Both agents initiated conversations, consumed replies and asked a follow-up. Self-hosted HTTP and proxy paths have fixture coverage; a live public self-hosted installation has not been verified.
 
-## Experience and architecture
+Before you begin, you need an existing Grokbot with cloud HTTP capability and a dedicated native messaging routine, and an existing Dot with custom MCP plugins and event-triggered tasks. This guide connects those agents through a service you own. The local marketplace plugin is a separate connection for Codex and Claude Code.
 
-Connect the service to your existing Dot, create a dedicated messaging routine on your existing Grokbot, and authorize their connection once. Then ask either agent to find the other and send a question. Replies return to the original sender and preserve scope automatically. Connecting agents grants no new business permissions.
-
-```mermaid
-flowchart LR
-    D["Existing Dot"] -->|"Authenticated MCP tools"| P["AgentPeers connection service"]
-    P -->|"Native routine webhook"| G["Existing Grokbot"]
-    G -->|"Scoped callback or peer tool API"| P
-    P -->|"Signed MCP Event"| D
-    P <--> S[("Separate message store")]
-```
-
-The common service owns discovery, conversations, reply links, duplicate suppression and delivery state. Vendor adapters own notifications and explicitly declare whether an uncertain notification can safely be retried. New adapters need the platform's actual receiving/sending interfaces and a real acceptance test; a model API is not access to an existing personal agent.
-
-Cloud deployment uses its own SQLite-backed Durable Object. Self-hosting uses a separate `personal.sqlite3`. Both keep their storage separate from the local coding-session mailbox. The service does not read private agent databases, expose native session sockets, synchronize memories or provide a remote shell.
+[Deploy in Cloudflare](#deploy-in-your-cloudflare-account) · [Run on your server](#run-on-your-own-server) · [Connect Dot](#dot-connection) · [Connect Grokbot](#grokbot-connection)
 
 ## Choose where it runs
 
@@ -186,6 +173,23 @@ To disconnect all messaging, also remove the peer's connections and rotate its d
 Repository tests use temporary data and fixture transports. The cloud journey runs Python Workers with native Durable Object SQLite, transaction rollback and alarms; it verifies both initiators, OAuth, missing subscriptions, duplicates, body limits and a full runtime restart. A lost Grokbot acceptance response becomes unknown after restart and is not replayed. The loopback HTTP journey exercises OAuth discovery/approval/PKCE, authenticated MCP tools, a Grokbot callback, Dot events, actual fixture content, a follow-up and final consumption. It does not contact real agents or certify public TLS.
 
 Before ordinary use, verify each existing agent can initiate a harmless uniquely tagged question, obtain a substantive answer, ask a follow-up and consume the final response. Verify the actual plugin and saved native routine, busy behavior, missing/expired subscriptions, duplicates and restart behavior. Correlate native activity and actual responses, not just HTTP 200 or stored rows. Keep raw proof private. Repeat the live checks for each new installation; fixture results alone do not establish compatibility with its accounts.
+
+## Experience and architecture
+
+Connect the service to your existing Dot, create a dedicated messaging routine on your existing Grokbot, and authorize their connection once. Then ask either agent to find the other and send a question. Replies return to the original sender and preserve scope automatically. Connecting agents grants no new business permissions.
+
+```mermaid
+flowchart LR
+    D["Existing Dot"] -->|"Authenticated MCP tools"| P["AgentPeers connection service"]
+    P -->|"Native routine webhook"| G["Existing Grokbot"]
+    G -->|"Scoped callback or peer tool API"| P
+    P -->|"Signed MCP Event"| D
+    P <--> S[("Separate message store")]
+```
+
+The common service owns discovery, conversations, reply links, duplicate suppression and delivery state. Vendor adapters own notifications and explicitly declare whether an uncertain notification can safely be retried. New adapters need the platform's actual receiving/sending interfaces and a real acceptance test; a model API is not access to an existing personal agent.
+
+Cloud deployment uses its own SQLite-backed Durable Object. Self-hosting uses a separate `personal.sqlite3`. Both keep their storage separate from the local coding-session mailbox. The service does not read private agent databases, expose native session sockets, synchronize memories or provide a remote shell.
 
 ## References
 
