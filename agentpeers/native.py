@@ -20,6 +20,7 @@ from .unixrpc import SharedServer
 from .desktop_wake import enabled as desktop_wake_enabled
 
 MAX_BYTES = 256_000
+DISCOVERY_BUDGETS = (12, 6)
 
 
 class Unavailable(Exception):
@@ -96,6 +97,10 @@ def claude_sessions():
 
 class AppServer:
     """Use the read-only JSON-RPC API for stored Codex discovery."""
+    def __init__(self, timeout=12, deadline=None):
+        self.timeout = timeout
+        self.deadline = deadline
+
     def __enter__(self):
         command = [setting("CODEX", "codex"), "app-server"]
         self.proc = subprocess.Popen(command,
@@ -119,15 +124,21 @@ class AppServer:
         return self
 
     def call(self, method, params):
+        deadline = time.monotonic() + self.timeout
+        if self.deadline is not None:
+            deadline = min(deadline, self.deadline)
+        if time.monotonic() >= deadline:
+            raise Unavailable("Codex discovery time budget exhausted", code="codex_discovery_timeout",
+                              stage="discovery", submission_attempted=False)
         ident = uuid.uuid4().hex
         self.proc.stdin.write(json.dumps({"id": ident, "method": method, "params": params}) + "\n")
         self.proc.stdin.flush()
-        deadline = time.monotonic() + 12
         while time.monotonic() < deadline:
             try:
                 line = self.lines.get(timeout=max(.01, deadline - time.monotonic()))
             except queue.Empty as exc:
-                raise Unavailable("Codex app-server response timed out") from exc
+                raise Unavailable("Codex app-server response timed out", code="codex_discovery_timeout",
+                                  stage="discovery", submission_attempted=False) from exc
             if line is None:
                 raise Unavailable("Codex app-server connection exited")
             value = json.loads(line)
@@ -135,7 +146,8 @@ class AppServer:
                 if "error" in value:
                     raise Unavailable("Codex app-server rejected request: " + str(value["error"]))
                 return value["result"]
-        raise Unavailable("Codex discovery timed out")
+        raise Unavailable("Codex discovery timed out", code="codex_discovery_timeout",
+                          stage="discovery", submission_attempted=False)
 
     def __exit__(self, *args):
         self.proc.terminate()
@@ -209,9 +221,11 @@ def send_codex(destination, envelope):
                              "shared_target_loaded": shared_target_loaded}) from exc
 
 
-def codex_sessions():
+def stored_codex_sessions(budget):
     rows, seen = [], set()
-    with AppServer() as client:
+    # Initialization and all pages share one budget; a slow server cannot add
+    # a full timeout for every page. A retry uses a fresh read-only process.
+    with AppServer(timeout=budget, deadline=time.monotonic() + budget) as client:
         cursor = None
         while True:
             params = {"limit": 100, "archived": False}
@@ -225,6 +239,23 @@ def codex_sessions():
             if cursor in seen:
                 raise Unavailable("Codex discovery repeated a page cursor")
             seen.add(cursor)
+    return rows
+
+
+def codex_sessions():
+    for attempt, budget in enumerate(DISCOVERY_BUDGETS, 1):
+        try:
+            rows = stored_codex_sessions(budget)
+            break
+        except Unavailable as exc:
+            if exc.diagnostics.get("code") != "codex_discovery_timeout":
+                raise
+            if attempt == 2:
+                raise Unavailable("Codex session discovery timed out after two read-only attempts. "
+                                  "Receiving state is unknown; no message was submitted. "
+                                  "Use an exact previously verified session ID for authorized contact.",
+                                  code="codex_discovery_timeout", stage="discovery", attempts=2,
+                                  session_state="unknown", submission_attempted=False) from exc
     # A fresh terminal can be loaded and named before its first saved turn.
     # Include public metadata for loaded IDs absent from the saved-chat listing,
     # otherwise a duplicate live name could be mistaken for a unique address.

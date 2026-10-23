@@ -9,6 +9,13 @@
 - Present AgentPeers as cross-platform communication between existing agents, with separate setup paths, scoped plugin listings and discoverable service CLI help.
 - Add cloud runtime, local contract and loopback HTTP tests. Live Grokbot ↔ Dot checks verified both initiators, replies and a follow-up from each agent. Muse and Duet are not yet implemented.
 
+## 0.6.2
+
+- Validate MCP arguments before opening a mailbox or attempting delivery. Missing or invalid fields return a structured correction with explicit confirmation that no message was created or submitted.
+- Make the authorization field explain that agents should summarize permission already given, without asking for duplicate approval or inventing authority.
+- Retry one transient Codex session-discovery timeout in a fresh read-only process, with bounded initialization and pagination. Preserve other runtime results and report persistent lookup failure as unknown receiving state.
+- Keep message submission and uncertain delivery outside automatic retry. A corrected call can reuse its message ID without duplicate sends.
+
 ## 0.6.1
 
 - Add explicit desktop wake opt-in: open an unloaded Codex destination using its native app link, verify its receiver, then deliver peer tool output. The app may select that chat.

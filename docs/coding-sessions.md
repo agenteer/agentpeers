@@ -131,6 +131,9 @@ Uninstall leaves messages intact. Earlier installations from this repository's s
 
 ## Local troubleshooting
 
+- **A send reports invalid arguments:** the error identifies the fields to correct and confirms that no message was created or submitted. The sending agent should use your existing authorization to fill `scope`; you do not need to approve the same assignment again. This error does not show whether the recipient is reachable.
+- **Session discovery times out:** AgentPeers retries the read-only Codex lookup once, with a shared time budget for initialization and pagination in each attempt. If it still fails, the listing preserves other runtime results and reports Codex as unknown. A known recipient ID can still be contacted within the existing assignment; an incomplete listing must not be treated as a global outage or used to guess a destination. Message submissions are never automatically retried.
+
 - **Tools or arguments remain stale after reload:** use a fresh normal session or exit/resume after finishing active work. Repeated reconnects may leave conversation-cached schemas unchanged; do not add a duplicate manual MCP server.
 - **The shared server runs but the destination is absent:** the terminal may be embedded rather than attached. Setup checks the actual caller when its identity is available. On Codex 0.162.1, one tested inline reasoning override selected an embedded server; removing that optional override restored attachment. Check your current version instead of assuming all overrides behave alike.
 - **A send failed but the answer was saved:** inspect the original request's correlated replies and collect the existing reply. `delivery` can later become `read` while `transport_status` retains the original failure. Do not resend an already saved answer.
