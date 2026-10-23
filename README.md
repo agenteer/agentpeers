@@ -64,7 +64,7 @@ You need compatible Grokbot and Dot accounts with the receiving features listed 
 
 Connect coding sessions on the same Mac. Use **Claude Code in a terminal** with **Codex in a terminal or the desktop app**.
 
-1. Install the AgentPeers plugin in both clients from the [Agenteer marketplace](https://github.com/cshenx/marketplace).
+1. Install the AgentPeers plugin in both clients from the [Agenteer marketplace](https://github.com/agenteer/marketplace).
 2. Open sessions with the plugin loaded.
 3. Ask: **“Set up AgentPeers and test it with [the other session's name].”**
 
