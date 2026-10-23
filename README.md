@@ -181,6 +181,7 @@ Uninstall leaves messages intact. Earlier installations from this repository's s
 
 ## Troubleshooting
 
+- **A send reports a missing `scope` argument:** the sending agent must describe the work you authorized in that field. The message was not submitted; this input error does not show whether the recipient is reachable. Correct the arguments without inventing permission or resending an uncertain delivery.
 - **Tools or arguments remain stale after reload:** use a fresh normal session or exit/resume after finishing active work. Repeated reconnects may leave conversation-cached schemas unchanged; do not add a duplicate manual MCP server.
 - **The shared server runs but the destination is absent:** the terminal may be embedded rather than attached. Setup checks the actual caller when its identity is available. On Codex 0.162.1, one tested inline reasoning override selected an embedded server; removing that optional override restored attachment. Check your current version instead of assuming all overrides behave alike.
 - **A send failed but the answer was saved:** inspect the original request's correlated replies and collect the existing reply. `delivery` can later become `read` while `transport_status` retains the original failure. Do not resend an already saved answer.

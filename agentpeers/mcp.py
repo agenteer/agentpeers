@@ -43,6 +43,18 @@ TOOLS = [
 
 
 def dispatch(name, args, actor=None):
+    tool = next((tool for tool in TOOLS if tool[0] == name), None)
+    if tool is None:
+        raise ValueError("unknown tool")
+    if not isinstance(args, dict):
+        raise ValueError("tool arguments must be an object; no message created or submitted")
+    if name == "send_message" and (not isinstance(args.get("scope"), str) or not args["scope"].strip()):
+        raise ValueError("send_message requires a non-empty scope describing the work authorized by the human. "
+                         "No message created or submitted; this is an input error, not a receiver failure.")
+    missing = [key for key in tool[3] if key not in args]
+    if missing:
+        raise ValueError(name + " is missing required arguments: " + ", ".join(missing) +
+                         ". No message created or submitted; correct the tool arguments.")
     if name == "setup":
         if args.get("to") and args.get("probe_id"):
             raise ValueError("send a new challenge or verify an existing one, not both")
@@ -66,8 +78,6 @@ def dispatch(name, args, actor=None):
         return {"sessions": sessions, "errors": errors,
                 "discovery_note": "Local native inventory only. A chat missing here may still exist on another "
                 "Codex host. Use native Codex discovery for same-runtime peers; absence is not proof it ended."}
-    if name not in {tool[0] for tool in TOOLS}:
-        raise ValueError("unknown tool")
     with Bridge() as bridge:
         if name == "decision_status":
             return bridge.decision_status(args["decision_id"])
