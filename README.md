@@ -53,19 +53,19 @@ There are no third-party Python runtime dependencies, new API keys or agentpeers
 Run in a terminal:
 
 ```sh
-codex plugin marketplace add https://github.com/agenteer/marketplace.git
+codex plugin marketplace add https://github.com/cshenx/marketplace.git
 codex plugin add agentpeers@agenteer-public
-claude plugin install agentpeers --marketplace https://github.com/agenteer/marketplace.git --scope user
+claude plugin install agentpeers --marketplace https://github.com/cshenx/marketplace.git --scope user
 ```
 
 The combined Claude installation command requires 2.1.292+. Alternatively:
 
 ```sh
-claude plugin marketplace add https://github.com/agenteer/marketplace.git
+claude plugin marketplace add https://github.com/cshenx/marketplace.git
 claude plugin install agentpeers@agenteer-public --scope user
 ```
 
-The [Agenteer marketplace](https://github.com/agenteer/marketplace) lists the plugin; its code stays in this repository. Each client installs its own plugin copy. Both use the same external message store. For local development, add this repository's absolute path as a marketplace and install `agentpeers@agentpeers` instead. Keep that checkout in a permanent location.
+The [Agenteer marketplace](https://github.com/cshenx/marketplace) lists the plugin; its code stays in this repository. Each client installs its own plugin copy. Both use the same external message store. For local development, add this repository's absolute path as a marketplace and install `agentpeers@agentpeers` instead. Keep that checkout in a permanent location.
 
 ### 3. Open the sessions
 
@@ -199,6 +199,6 @@ Tests use temporary stores and fixture sockets. The packager exports tracked fil
 
 For a standalone command, install the source in an isolated Python environment with `python3 -m pip install .`. Building uses setuptools; the bundled plugin launcher itself needs only Python's standard library. This release contains the local Codex and Claude Code adapters.
 
-Report bugs through [GitHub issues](https://github.com/agenteer/agentpeers/issues), with versions and redacted status. Keep credentials, transcripts, private paths and message stores out of issues. For sensitive reports, follow [SECURITY.md](SECURITY.md). See [CONTRIBUTING.md](CONTRIBUTING.md) and [CHANGELOG.md](CHANGELOG.md) for development and release guidance.
+Report bugs through [GitHub issues](https://github.com/cshenx/agentpeers/issues), with versions and redacted status. Keep credentials, transcripts, private paths and message stores out of issues. For sensitive reports, follow [SECURITY.md](SECURITY.md). See [CONTRIBUTING.md](CONTRIBUTING.md) and [CHANGELOG.md](CHANGELOG.md) for development and release guidance.
 
 Copyright © 2026 Agenteer LLC and AgentPeers contributors. [MIT licensed](LICENSE).

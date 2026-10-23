@@ -14,9 +14,9 @@ authors = [{name = "Agenteer LLC"}]
 classifiers = ["Operating System :: MacOS :: MacOS X", "Programming Language :: Python :: 3 :: Only"]
 
 [project.urls]
-Homepage = "https://github.com/agenteer/agentpeers"
-Repository = "https://github.com/agenteer/agentpeers"
-Issues = "https://github.com/agenteer/agentpeers/issues"
+Homepage = "https://github.com/cshenx/agentpeers"
+Repository = "https://github.com/cshenx/agentpeers"
+Issues = "https://github.com/cshenx/agentpeers/issues"
 
 [project.scripts]
 agentpeers = "agentpeers.cli:main"

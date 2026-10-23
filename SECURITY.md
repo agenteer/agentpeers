@@ -21,7 +21,7 @@ Native names are cooperative routing labels within the same OS user. Reusing a u
 
 ## Reporting a vulnerability
 
-Use [GitHub private vulnerability reporting](https://github.com/agenteer/agentpeers/security/advisories/new) when available. If private reporting is unavailable, open an issue requesting a private contact method without exploit details or sensitive content. Do not post credentials, live message stores, transcripts or unredacted private paths in public issues.
+Use [GitHub private vulnerability reporting](https://github.com/cshenx/agentpeers/security/advisories/new) when available. If private reporting is unavailable, open an issue requesting a private contact method without exploit details or sensitive content. Do not post credentials, live message stores, transcripts or unredacted private paths in public issues.
 
 Include the affected commit/version, OS and client versions, a minimal redacted reproduction, expected boundary and observed behavior. Maintainers will coordinate a fix and disclosure; avoid publishing working exploit details before that discussion.
 
