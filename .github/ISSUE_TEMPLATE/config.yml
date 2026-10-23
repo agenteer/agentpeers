@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Private security report
-    url: https://github.com/agenteer/agentpeers/security/advisories/new
+    url: https://github.com/cshenx/agentpeers/security/advisories/new
     about: Use private reporting when available; otherwise follow SECURITY.md.
