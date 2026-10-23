@@ -20,6 +20,7 @@ from .unixrpc import SharedServer
 from .desktop_wake import enabled as desktop_wake_enabled
 
 MAX_BYTES = 256_000
+DISCOVERY_BUDGETS = (12, 6)
 
 
 class Unavailable(Exception):
@@ -242,7 +243,7 @@ def stored_codex_sessions(budget):
 
 
 def codex_sessions():
-    for attempt, budget in enumerate((12, 6), 1):
+    for attempt, budget in enumerate(DISCOVERY_BUDGETS, 1):
         try:
             rows = stored_codex_sessions(budget)
             break

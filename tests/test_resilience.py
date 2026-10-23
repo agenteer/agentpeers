@@ -2,6 +2,7 @@
 import io
 import json
 import os
+from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock, call, patch
@@ -84,6 +85,39 @@ class Resilience(unittest.TestCase):
             self.assertEqual(server.call_count, 2)
             second.call.assert_called_once_with('thread/list', {'limit': 100, 'archived': False})
             self.assertEqual([c.kwargs['timeout'] for c in server.call_args_list], [12, 6])
+
+    def test_real_stalled_child_is_reaped_and_fresh_child_recovers(self):
+        # Exercise actual stdio/process cleanup without launching Codex or agents.
+        script = '''#!/usr/bin/env python3
+import json, os, pathlib, sys, time
+marker = pathlib.Path(os.environ['FIXTURE_STARTS'])
+starts = json.loads(marker.read_text()) if marker.exists() else []
+starts.append(os.getpid()); marker.write_text(json.dumps(starts))
+for line in sys.stdin:
+    request = json.loads(line)
+    if 'id' not in request: continue
+    if len(starts) == 1: time.sleep(60)
+    result = {'data': [{'id': os.environ['FIXTURE_THREAD'], 'name': 'fixture'}]} if request['method'] == 'thread/list' else {}
+    print(json.dumps({'id': request['id'], 'result': result}), flush=True)
+'''
+        with tempfile.TemporaryDirectory(prefix='ap read retry ') as folder:
+            root = Path(folder)
+            program = root / 'fixture-codex'
+            program.write_text(script)
+            program.chmod(0o700)
+            starts = root / 'starts.json'
+            env = {'AGENTPEERS_CODEX': str(program), 'FIXTURE_STARTS': str(starts),
+                   'FIXTURE_THREAD': C.split(':')[1], 'CODEX_HOME': str(root)}
+            with patch.dict(os.environ, env), patch.object(native, 'DISCOVERY_BUDGETS', (1, 2)), \
+                 patch.object(native, 'send_codex') as send, patch.object(native, 'Desktop') as desktop:
+                self.assertEqual(native.codex_sessions()[0]['id'], C)
+            pids = json.loads(starts.read_text())
+            self.assertEqual(len(pids), 2)
+            for pid in pids:
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(pid, 0)
+            send.assert_not_called()
+            desktop.assert_not_called()
 
     def test_persistent_timeout_preserves_other_runtime_and_unknown_state(self):
         with patch.object(native, 'stored_codex_sessions', side_effect=timed_out()) as stored, \
